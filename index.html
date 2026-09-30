@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5">
-<meta name="theme-color" content="#f8f9fa">
+<meta name="theme-color" content="#f8f9fa" id="meta-theme-color">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>SP-PPT — Manajemen Produksi Teater</title>
+<title>SP-PPT — Sistem Penilaian Proyek Produksi Teater</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
@@ -16,7 +16,6 @@
 <link rel="stylesheet" href="styles.css">
 
 <script>
-/* FIX #1: harus di-attach ke window supaya core.js bisa membacanya */
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyDczk0n-4QvvwTDikDBnuTkRX_SlXIV9JQ",
   authDomain: "penilaian-proyek-teater-siswa.firebaseapp.com",
@@ -43,7 +42,7 @@ window.FIREBASE_CONFIG = {
         <img src="https://iili.io/nHsHgfe.png" alt="Logo" onerror="this.style.display='none'">
         <img src="https://iili.io/nBiviCX.png" alt="Logo" onerror="this.style.display='none'">
       </div>
-      <h1>Manajemen Produksi Teater</h1>
+      <h1>Sistem Penilaian Proyek Produksi Teater</h1>
       <p>SMP Negeri 10 Samarinda</p>
     </div>
     <nav class="tabs">
@@ -108,10 +107,10 @@ window.FIREBASE_CONFIG = {
   <header class="app-header">
     <div class="header-brand">
       <img src="https://iili.io/nHsHgfe.png" alt="Logo" onerror="this.style.display='none'">
-      <div><h2>Manajemen Produksi Teater</h2><p>SMP Negeri 10 Samarinda</p></div>
+      <div><h2>Sistem Penilaian Proyek Produksi Teater</h2><p>SMP Negeri 10 Samarinda</p></div>
     </div>
     <div class="header-actions">
-      <button class="btn-icon" id="btn-theme" title="Tema"></button>
+      <button class="btn-icon" id="btn-theme" title="Ganti tema"></button>
       <button class="btn-icon" id="btn-notif" title="Notifikasi">
         <span class="notif-badge hidden">0</span></button>
       <button class="btn-icon" id="btn-password" title="Ubah Password"></button>
@@ -143,7 +142,6 @@ window.FIREBASE_CONFIG = {
 <button id="btn-aduan" class="fab fab-aduan hidden" title="Aduan"></button>
 <button id="btn-kerabat" class="fab fab-kerabat hidden" title="Kerabat Kerja"></button>
 
-<!-- FIX #4: app.js dihapus karena duplikat features.js -->
 <script src="js/core.js"></script>
 <script src="js/features.js"></script>
 </body>
