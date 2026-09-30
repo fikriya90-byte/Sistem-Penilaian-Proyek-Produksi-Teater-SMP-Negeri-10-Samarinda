@@ -1071,6 +1071,9 @@ function openGuruMenu(){
     '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openActivityLog()">'+ic('activity')+' Aktivitas</button>' +
     '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openChangePassword()">'+ic('key')+' Ubah Password</button>' +
     '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();logout()">'+ic('out')+' Keluar</button>' +
+    '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openAduanGuru()">'+ic('messageCircle')+' Aduan Siswa</button>' +
+    '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openLogWA()">'+ic('messageCircle')+' Log WhatsApp</button>' +
+    '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openDashboardPesan()">'+ic('send')+' Dashboard Pesan</button>' +
     '</div>');
 }
 
@@ -1102,6 +1105,13 @@ function openSiswaMenu(){
   }
   items.push({i:'key', l:'Ubah Password', a:'openChangePassword'});
   items.push({i:'out', l:'Keluar', a:'logout'});
+  items.push({i:'warning', l:'Aduan Siswa', a:'openAduanSiswa'});
+  items.push({i:'messageCircle', l:'Log WA Saya', a:'openLogWA'});
+
+// Untuk peran penting
+if (['pimpinan_produksi','sekretaris','sutradara','asisten_sutradara','koor_musik','koor_perlengkapan'].indexOf(role) >= 0){
+  items.push({i:'send', l:'Dashboard Pesan', a:'openDashboardPesan'});
+}
 
   var h = '<div style="display:flex;flex-direction:column;gap:8px;">';
   items.forEach(function(it){
