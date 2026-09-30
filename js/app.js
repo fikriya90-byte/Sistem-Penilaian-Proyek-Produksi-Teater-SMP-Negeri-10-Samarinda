@@ -1343,18 +1343,277 @@ function openAdminMenu(){
    26. PANDUAN
    ============================================================ */
 window.openPanduan = function(){
-  openModal('Panduan',
-    '<div style="white-space:pre-wrap;padding:14px;background:var(--surface);border-radius:10px;font-size:12.5px;line-height:1.7;">' +
-    'SISTEM PENILAIAN PROYEK PRODUKSI TEATER\n\n' +
-    '1. Guru membuat kelas & menambah siswa\n' +
-    '2. Guru mengaktifkan tahapan\n' +
-    '3. Siswa login dengan email atau No. WA\n' +
-    '4. Siswa isi checklist & beri nilai rekan\n' +
-    '5. Guru menilai Pimpinan Produksi & Sutradara\n' +
-    '6. Sistem hitung otomatis\n\n' +
-    'Bobot: Guru 40% + Ketua 30% + Rekan 30%\n\n' +
-    'Bantuan: hubungi admin atau guru pengampu' +
-    '</div>');
+  var h = '';
+
+  // ===== HEADER =====
+  h += '<div style="text-align:center;padding:20px 16px;background:linear-gradient(135deg,var(--primary-soft),var(--info-soft));border-radius:14px;margin-bottom:16px;">' +
+    '<div style="font-size:22px;margin-bottom:6px;">' + ic('book', 32) + '</div>' +
+    '<div style="font-size:17px;font-weight:800;color:var(--text-strong);">Panduan SP-PPT</div>' +
+    '<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">Sistem Penilaian Proyek Produksi Teater</div>' +
+    '<div style="font-size:11.5px;color:var(--text-muted);">SMP Negeri 10 Samarinda</div>' +
+  '</div>';
+
+  // ===== TENTANG SISTEM =====
+  h += '<div class="card" style="border-left:4px solid var(--primary);">' +
+    '<h3>' + ic('info') + ' Tentang Sistem</h3>' +
+    '<p style="font-size:12.5px;line-height:1.7;margin-bottom:8px;">' +
+    'SP-PPT adalah sistem untuk mengelola <b>proyek produksi teater kelas</b>. ' +
+    'Setiap siswa punya peran (<b>jobdesk</b>) dan bertanggung jawab menyelesaikan tugas sesuai peran tersebut.' +
+    '</p>' +
+    '<div style="background:var(--surface);padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.8;">' +
+      '<b>Bobot Nilai Akhir:</b><br>' +
+      '&bull; <b>Guru</b> : 40% (Pimpro &amp; Sutradara)<br>' +
+      '&bull; <b>Ketua</b> : 30% (Pimpro &amp; Sutradara nilai semua)<br>' +
+      '&bull; <b>Rekan</b> : 30% (atasan + peer sekawan)<br>' +
+      '&bull; <b>Faktor Kehadiran</b> : 0.75 - 1.0 (auto-multiply)' +
+    '</div>' +
+  '</div>';
+
+  // ===== LOGIN =====
+  h += '<details class="card" style="border-left:4px solid var(--success);">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:14px;">' + ic('lock') + ' Cara Login</summary>' +
+    '<div style="margin-top:12px;font-size:12.5px;line-height:1.8;">' +
+      '<b style="color:var(--primary);">GURU:</b><br>' +
+      '1. Buka aplikasi → tab <b>Guru</b><br>' +
+      '2. Masukkan <b>email guru</b> + password<br>' +
+      '3. Klik <b>Masuk sebagai Guru</b><br><br>' +
+      '<b style="color:var(--primary);">SISWA:</b><br>' +
+      '1. Pilih kelas → tab <b>Siswa</b><br>' +
+      '2. Masukkan <b>email</b> ATAU <b>No. WA</b><br>' +
+      '3. Masukkan password<br>' +
+      '4. Klik <b>Masuk sebagai Siswa</b><br><br>' +
+      '<b style="color:var(--danger);">Lupa Password?</b><br>' +
+      'Klik <b>"Lupa Password?"</b> di bawah tombol login → masukkan email → kode 6 digit muncul → reset.' +
+    '</div>' +
+  '</details>';
+
+  // ===== UNTUK SISWA =====
+  h += '<div class="card" style="border-left:4px solid var(--info);margin-top:14px;">' +
+    '<h3>' + ic('user') + ' Untuk Siswa</h3>';
+
+  // 1. Dashboard
+  h += '<details style="margin-top:10px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">1. Dashboard Siswa</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Setelah login, Anda melihat:<br>' +
+    '&bull; Nama, kelas, peran Anda<br>' +
+    '&bull; <b>Tahapan Aktif</b> — klik untuk beri nilai rekan<br>' +
+    '&bull; <b>Deadline &amp; Tugas</b> dari guru<br>' +
+    '&bull; <b>Master Timeline</b> — agenda produksi dari Pimpro/Sekretaris' +
+    '</div></details>';
+
+  // 2. Checklist
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">2. Checklist (Saya &amp; Tim)</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    '<b>Checklist Pribadi:</b><br>' +
+    'Tugas pribadi yang Anda buat sendiri.<br>' +
+    '&bull; Menu → <b>Checklist Saya</b><br>' +
+    '&bull; Klik <b>Ambil dari Template</b> (rekomendasi tugas per peran)<br>' +
+    '&bull; Atau <b>Tambah Manual</b><br>' +
+    '&bull; Centang item yang sudah selesai<br><br>' +
+    '<b>Checklist Tim:</b><br>' +
+    'Tugas kolaboratif seluruh tim (hanya pengurus inti &amp; koor bisa centang).<br>' +
+    '&bull; Menu → <b>Checklist Tim</b><br>' +
+    '&bull; Lihat tugas sesuai peran + peer<br>' +
+    '&bull; Centang yang sudah dikerjakan' +
+    '</div></details>';
+
+  // 3. Beri Nilai
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">3. Beri Nilai Rekan</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Nilai rekan sesuai rubrik per peran.<br>' +
+    '&bull; Menu → <b>Beri Nilai</b><br>' +
+    '&bull; Pilih tahap (Perencanaan / Pelaksanaan / Pertunjukan / Evaluasi)<br>' +
+    '&bull; Pilih rekan target<br>' +
+    '&bull; Isi rubrik (skala 1-4)<br>' +
+    '&bull; Klik <b>Simpan Penilaian</b><br><br>' +
+    '<div style="padding:8px;background:var(--warning-soft);border-radius:6px;border-left:3px solid var(--warning);">' +
+    ic('warning','sm') + ' <b>Ingat:</b> Nilai berdasarkan <b>BUKTI NYATA</b>, bukan suka/duka!' +
+    '</div></div></details>';
+
+  // 4. Absensi
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">4. Absensi</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Isi kehadiran sesi rapat/latihan/gladi.<br>' +
+    '&bull; Menu → <b>Absensi</b><br>' +
+    '&bull; Pilih sesi hari ini<br>' +
+    '&bull; Pilih status: Hadir / Izin / Sakit / Telat / Tidak Hadir<br><br>' +
+    '<div style="padding:8px;background:var(--info-soft);border-radius:6px;border-left:3px solid var(--info);">' +
+    ic('info','sm') + ' <b>Kehadiran memengaruhi nilai akhir</b> (faktor pengali 0.75 - 1.0).' +
+    '</div></div></details>';
+
+  // 5. Kerabat Kerja
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">5. Kerabat Kerja</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Struktur organisasi teater kelas Anda.<br>' +
+    '&bull; Menu → <b>Kerabat Kerja</b> (atau klik floating button)<br>' +
+    '&bull; Lihat struktur per <b>jobdesk</b> (bukan per divisi)<br>' +
+    '&bull; Level: Pimpinan → Wakil → Koor → Anggota<br>' +
+    '&bull; Posisi Anda di-highlight biru<br>' +
+    '&bull; Klik ikon telepon untuk chat WA langsung' +
+    '</div></details>';
+
+  // 6. Dokumen
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">6. Dokumen Saya</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Template dokumen profesional per peran.<br>' +
+    '&bull; Menu → <b>Dokumen Saya</b><br>' +
+    '&bull; <b>Download Template</b> (Word/Excel)<br>' +
+    '&bull; Kerjakan di luar aplikasi<br>' +
+    '&bull; <b>Upload Hasil</b> (.pdf / .docx, maks 1 MB)<br><br>' +
+    '<div style="padding:8px;background:var(--warning-soft);border-radius:6px;border-left:3px solid var(--warning);">' +
+    ic('info','sm') + ' <b>Catatan:</b> Logo di template muncul sebagai placeholder (kotak dashed). Ganti manual dengan logo asli setelah buka di Word.' +
+    '</div></div></details>';
+
+  // 7. Naskah
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">7. Arsip Naskah</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Naskah teater dari Sutradara.<br>' +
+    '&bull; Menu → <b>Arsip Naskah</b><br>' +
+    '&bull; <b>Sutradara/Guru</b>: upload naskah baru<br>' +
+    '&bull; <b>Semua</b>: bisa baca &amp; download' +
+    '</div></details>';
+
+  // 8. Booking
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">8. Booking Alat Musik</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Khusus Pimpro, Koor Musik, Sutradara, Koor Perlengkapan.<br>' +
+    '&bull; Menu → <b>Booking Alat Musik</b><br>' +
+    '&bull; Pilih alat, tanggal, jam<br>' +
+    '&bull; Sistem <b>otomatis cek bentrok</b> antar kelas<br>' +
+    '&bull; Kelas lain tidak bisa pinjam alat sama di jam sama' +
+    '</div></details>';
+
+  // 9. Master Schedule
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">9. Master Schedule / Timeline</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Timeline produksi dari Pimpro/Sekretaris.<br>' +
+    '&bull; Menu → <b>Master Schedule</b><br>' +
+    '&bull; Agenda per bulan/minggu/hari<br>' +
+    '&bull; Termasuk jadwal latihan, konten, rapat<br>' +
+    '&bull; Bisa digeser untuk lihat slide berbeda' +
+    '</div></details>';
+
+  // 10. Aduan
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">10. Aduan</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    'Lapor masalah signifikan (perundungan, kerusakan, dll).<br>' +
+    '&bull; Klik tombol merah <b>Aduan</b> di kanan bawah<br>' +
+    '&bull; Isi kategori + detail<br>' +
+    '&bull; Otomatis terkirim ke guru via notifikasi + WA<br>' +
+    '&bull; Riwayat aduan muncul di menu' +
+    '</div></details>';
+
+  h += '</div>';
+
+  // ===== UNTUK GURU =====
+  h += '<div class="card" style="border-left:4px solid var(--success);margin-top:14px;">' +
+    '<h3>' + ic('shield') + ' Untuk Guru</h3>';
+
+  h += '<details style="margin-top:10px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">1. Kelola Kelas</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    '&bull; Dashboard → <b>Tambah Kelas</b> → dapat kode kelas<br>' +
+    '&bull; Bagikan kode ke siswa untuk daftar mandiri<br>' +
+    '&bull; Klik kelas → kelola siswa, checklist, penilaian<br>' +
+    '&bull; Tombol <b>Import</b> untuk import siswa via Excel' +
+    '</div></details>';
+
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">2. Kelola Tahapan</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    '&bull; Kelas → <b>Kelola Tahapan</b><br>' +
+    '&bull; Tambah/edit/hapus tahapan<br>' +
+    '&bull; Aktifkan tahap (toggle) agar siswa bisa menilai<br>' +
+    '&bull; Atur deadline per tahap<br>' +
+    '&bull; Total bobot idealnya 100%' +
+    '</div></details>';
+
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">3. Penilaian &amp; Rekap</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    '&bull; Guru menilai <b>Pimpinan Produksi &amp; Sutradara</b><br>' +
+    '&bull; Kelas → <b>Penilaian</b> → pilih target → isi rubrik<br>' +
+    '&bull; Kelas → <b>Rekap</b> → lihat nilai lengkap semua siswa<br>' +
+    '&bull; <b>Export Excel</b> untuk arsip' +
+    '</div></details>';
+
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">4. Kelola Checklist</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    '&bull; Kelas → <b>Checklist</b><br>' +
+    '&bull; <b>Tambah</b> item manual per peran<br>' +
+    '&bull; <b>Ambil Master</b> — auto-generate 12 peran × 4 fase<br>' +
+    '&bull; <b>Broadcast</b> ke siswa<br>' +
+    '&bull; <b>Copy Kelas</b> dari kelas lain' +
+    '</div></details>';
+
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">5. Absensi, Broadcast, Aduan</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    '&bull; <b>Absensi</b>: buat sesi rapat/latihan/gladi<br>' +
+    '&bull; <b>Broadcast</b>: kirim pengumuman ke semua siswa<br>' +
+    '&bull; <b>Aduan</b>: lihat &amp; balas aduan siswa<br>' +
+    '&bull; <b>Log WA</b>: riwayat komunikasi WhatsApp' +
+    '</div></details>';
+
+  h += '<details style="margin-top:6px;background:var(--surface);border-radius:8px;padding:10px;">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:13px;">6. Struktur Kerabat</summary>' +
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;">' +
+    '&bull; Kelas → <b>Kerabat</b> (atau Menu → Struktur)<br>' +
+    '&bull; Upload <b>logo</b> kerabat<br>' +
+    '&bull; Edit <b>nama</b> &amp; deskripsi<br>' +
+    '&bull; <b>Auto-Fill</b> dari data siswa<br>' +
+    '&bull; <b>Export Excel</b>' +
+    '</div></details>';
+
+  h += '</div>';
+
+  // ===== ATURAN EMAS =====
+  h += '<div class="card" style="border-left:4px solid var(--warning);margin-top:14px;">' +
+    '<h3>' + ic('star') + ' Aturan Emas</h3>' +
+    '<ol style="font-size:12.5px;line-height:1.9;padding-left:20px;">' +
+    '<li>Maksimal <b>1 jam</b> per sesi latihan</li>' +
+    '<li>Maksimal <b>2x latihan</b> per minggu</li>' +
+    '<li><b>Tidak ada latihan</b> saat ujian</li>' +
+    '<li>Iuran kas bersifat <b>sukarela</b></li>' +
+    '<li>Manfaatkan <b>material bekas</b></li>' +
+    '<li><b>Transparansi</b> keuangan wajib</li>' +
+    '<li>Nilai berdasarkan <b>bukti nyata</b>, bukan suka/duka</li>' +
+    '<li>Hormati semua peran &amp; jobdesk</li>' +
+    '</ol>' +
+  '</div>';
+
+  // ===== KENDALA UMUM =====
+  h += '<div class="card" style="border-left:4px solid var(--info);margin-top:14px;">' +
+    '<h3>' + ic('info') + ' Kendala Umum</h3>' +
+    '<table style="width:100%;font-size:12px;border-collapse:collapse;">' +
+    '<tr style="background:var(--surface);"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">Masalah</th>' +
+    '<th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">Solusi</th></tr>' +
+    '<tr><td style="padding:8px;border-bottom:1px solid var(--border);">Tidak bisa login</td>' +
+    '<td style="padding:8px;border-bottom:1px solid var(--border);">Hubungi Bendahara untuk reset password</td></tr>' +
+    '<tr><td style="padding:8px;border-bottom:1px solid var(--border);">Lupa password</td>' +
+    '<td style="padding:8px;border-bottom:1px solid var(--border);">Klik "Lupa Password?" di login → kode muncul → reset</td></tr>' +
+    '<tr><td style="padding:8px;border-bottom:1px solid var(--border);">Menu tidak muncul</td>' +
+    '<td style="padding:8px;border-bottom:1px solid var(--border);">Refresh aplikasi (Ctrl+Shift+R)</td></tr>' +
+    '<tr><td style="padding:8px;border-bottom:1px solid var(--border);">Nilai tidak tersimpan</td>' +
+    '<td style="padding:8px;border-bottom:1px solid var(--border);">Cek koneksi internet, ulangi</td></tr>' +
+    '<tr><td style="padding:8px;">Upload file gagal</td>' +
+    '<td style="padding:8px;">Pastikan file &lt; 1 MB, format PDF/DOCX</td></tr>' +
+    '</table>' +
+  '</div>';
+
+  openModal('Panduan Sistem', h);
+  if (window.hydrateIcons) window.hydrateIcons();
 };
 
 /* ============================================================
