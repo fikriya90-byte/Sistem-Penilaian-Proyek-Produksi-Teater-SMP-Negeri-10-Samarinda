@@ -16,7 +16,8 @@
 <link rel="stylesheet" href="styles.css">
 
 <script>
-const firebaseConfig = {
+/* FIX #1: harus di-attach ke window supaya core.js bisa membacanya */
+window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyDczk0n-4QvvwTDikDBnuTkRX_SlXIV9JQ",
   authDomain: "penilaian-proyek-teater-siswa.firebaseapp.com",
   projectId: "penilaian-proyek-teater-siswa",
@@ -142,8 +143,8 @@ const firebaseConfig = {
 <button id="btn-aduan" class="fab fab-aduan hidden" title="Aduan"></button>
 <button id="btn-kerabat" class="fab fab-kerabat hidden" title="Kerabat Kerja"></button>
 
+<!-- FIX #4: app.js dihapus karena duplikat features.js -->
 <script src="js/core.js"></script>
 <script src="js/features.js"></script>
-<script src="js/app.js"></script>
 </body>
 </html>
