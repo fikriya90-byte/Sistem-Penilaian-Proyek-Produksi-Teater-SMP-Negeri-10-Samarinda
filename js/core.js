@@ -1,11 +1,15 @@
 /* ============================================================
    SP-PPT v2.0 — CORE
-   Utils + Firebase + State + Auth + Icons + Modal + Notif + Toolbar + Boot
+   Sistem Penilaian Proyek Produksi Teater
+   SMP Negeri 10 Samarinda
+   Utils + Firebase + State + Auth + Icons + Modal + Notif + Toolbar + Theme + Boot
    ============================================================ */
 (function(){
 'use strict';
 
-/* ===== UTILS ===== */
+/* ============================================================
+   UTILS
+   ============================================================ */
 window.U = {
   esc: function(v){
     return String(v == null ? '' : v).replace(/[<>&"']/g, function(c){
@@ -64,7 +68,9 @@ window.U = {
   }
 };
 
-/* ===== FIREBASE ===== */
+/* ============================================================
+   FIREBASE
+   ============================================================ */
 window.fbReady = false; window.fb = null; window.fbError = '';
 try {
   if(typeof firebase==='undefined') throw new Error('Firebase SDK tidak termuat');
@@ -90,7 +96,9 @@ window.fsGet = function(col,id){
   return window.fb.collection(col).doc(id).get();
 };
 
-/* ===== STATE ===== */
+/* ============================================================
+   ROLES & STATE
+   ============================================================ */
 window.ROLES = {
   pimpinan_produksi:{label:'Pimpinan Produksi',team:'produksi'},
   sekretaris:{label:'Sekretaris',team:'produksi'},
@@ -177,9 +185,12 @@ window.logAct = function(type,msg,meta){
   window.fsSet('activity_logs',a.id,a);
 };
 
-/* ===== ICONS ===== */
+/* ============================================================
+   ICONS
+   ============================================================ */
 var ICONS = {
   sun:'<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
+  moon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
   eyeOff:'<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>',
@@ -234,7 +245,9 @@ function svgIco(name,size){
 }
 window.ico = svgIco;
 
-/* ===== MODAL + TOAST ===== */
+/* ============================================================
+   MODAL + TOAST
+   ============================================================ */
 window.openModal = function(title,body){
   var m = document.getElementById('modal'); if(!m) return;
   document.getElementById('modal-title').innerHTML = title;
@@ -281,7 +294,9 @@ document.addEventListener('click',function(e){
   btn.innerHTML = window.ico(isPw?'eyeOff':'eye',16);
 });
 
-/* ===== NOTIF PANEL ===== */
+/* ============================================================
+   NOTIF PANEL
+   ============================================================ */
 function getMyKey(){
   if(!window.currentUser) return null;
   if(window.currentUser.type==='siswa') return window.currentUser.studentId;
@@ -378,7 +393,52 @@ document.addEventListener('DOMContentLoaded',function(){
   if(bd) bd.addEventListener('click',window.closeNotifPanel);
 });
 
-/* ===== TOOLBAR + MENU ===== */
+/* ============================================================
+   THEME (AUTO + MANUAL)
+   ============================================================ */
+window.__getPreferredTheme = function(){
+  var saved = window.U.getLS('sppt_theme');
+  if(saved === 'dark' || saved === 'light') return saved;
+  try{
+    if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+  }catch(e){}
+  return 'light';
+};
+window.__applyTheme = function(t){
+  document.documentElement.setAttribute('data-theme', t);
+  var meta = document.getElementById('meta-theme-color');
+  if(meta) meta.setAttribute('content', t==='dark' ? '#0f172a' : '#f8f9fa');
+  var btn = document.getElementById('btn-theme');
+  if(btn) btn.innerHTML = window.ico(t==='dark'?'sun':'moon', 18);
+};
+window.__toggleTheme = function(){
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var next = cur === 'dark' ? 'light' : 'dark';
+  window.U.setLS('sppt_theme', next);
+  window.__applyTheme(next);
+};
+
+// Terapkan tema SEBELUM DOM ready (mencegah "flash" putih)
+(function(){
+  var t = window.__getPreferredTheme();
+  document.documentElement.setAttribute('data-theme', t);
+})();
+
+// Ikuti perubahan tema sistem jika user belum memilih manual
+try{
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  var mqHandler = function(e){
+    if(!window.U.getLS('sppt_theme')){
+      window.__applyTheme(e.matches ? 'dark' : 'light');
+    }
+  };
+  if(mq.addEventListener) mq.addEventListener('change', mqHandler);
+  else if(mq.addListener) mq.addListener(mqHandler);
+}catch(e){}
+
+/* ============================================================
+   TOOLBAR + MENU
+   ============================================================ */
 window.injectToolbar = function(){
   var mc = document.getElementById('main-content');
   if(!mc || !window.currentUser) return;
@@ -646,7 +706,9 @@ window.__copyPwd = function(pwd){
   else prompt('Copy:',pwd);
 };
 
-/* ===== AUTH ===== */
+/* ============================================================
+   AUTH
+   ============================================================ */
 var ADMIN = { email:'fikri.yassaar15@guru.smp.belajar.id', password:'#Smpn10smd', name:'Fikri Yassaar (Admin)' };
 
 document.addEventListener('click',function(e){
@@ -660,6 +722,7 @@ document.addEventListener('click',function(e){
 });
 
 document.addEventListener('DOMContentLoaded',function(){
+  /* ---------- LOGIN GURU ---------- */
   var fg = document.getElementById('form-login-guru');
   if(fg) fg.addEventListener('submit',function(e){
     e.preventDefault();
@@ -670,7 +733,7 @@ document.addEventListener('DOMContentLoaded',function(){
       return window.U.normEmail(x.email)===email && String(x.password).trim()===pw;
     });
     if(!t){
-      // fallback: coba fetch langsung dari Firestore (kalau listener belum selesai)
+      // fallback: fetch langsung dari Firestore
       if(window.fbReady){
         window.fsGet('teachers',email).then(function(snap){
           if(snap.exists){
@@ -693,6 +756,7 @@ document.addEventListener('DOMContentLoaded',function(){
     window.showApp();
   });
 
+  /* ---------- LOGIN SISWA ---------- */
   var fs = document.getElementById('form-login-siswa');
   if(fs) fs.addEventListener('submit',function(e){
     e.preventDefault();
@@ -735,6 +799,7 @@ document.addEventListener('DOMContentLoaded',function(){
     } else finish(null,null);
   });
 
+  /* ---------- LOGIN ADMIN ---------- */
   var fa = document.getElementById('form-login-admin');
   if(fa) fa.addEventListener('submit',function(e){
     e.preventDefault();
@@ -746,6 +811,7 @@ document.addEventListener('DOMContentLoaded',function(){
     } else window.toast('Email atau password admin salah','error');
   });
 
+  /* ---------- REGISTER SISWA ---------- */
   var fr = document.getElementById('form-register');
   if(fr){
     var sel = document.getElementById('reg-role');
@@ -799,6 +865,9 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 });
 
+/* ============================================================
+   SHOW / HIDE SCREENS
+   ============================================================ */
 window.showLogin = function(){
   var ld = document.getElementById('loading'); if(ld) ld.style.display = 'none';
   document.getElementById('login-screen').classList.remove('hidden');
@@ -900,31 +969,34 @@ window.showApp = function(){
   try{ window.injectKerabat  && window.injectKerabat();  }catch(e){ console.warn(e); }
   try{ window.updateNotifBadge && window.updateNotifBadge(); }catch(e){ console.warn(e); }
 
-  // Tombol header
+  // Tombol tema
   var bTheme = document.getElementById('btn-theme');
   if(bTheme && !bTheme.__bound){
     bTheme.__bound = true;
-    bTheme.innerHTML = window.ico('sun',18);
+    window.__applyTheme(window.__getPreferredTheme());
     bTheme.addEventListener('click', function(){
-      var cur = document.documentElement.getAttribute('data-theme')||'light';
-      var next = cur==='light'?'dark':'light';
-      document.documentElement.setAttribute('data-theme', next);
-      bTheme.innerHTML = window.ico(next==='dark'?'sun':'sun',18);
+      window.__toggleTheme();
+      window.toast('Tema: ' + (document.documentElement.getAttribute('data-theme')==='dark'?'Gelap':'Terang'), 'info');
     });
   }
+
+  // Tombol ubah password
   var bPw = document.getElementById('btn-password');
   if(bPw && !bPw.__bound){
     bPw.__bound = true;
     bPw.innerHTML = window.ico('key',18);
     bPw.addEventListener('click', function(){ window.openChangePassword(); });
   }
+
+  // Tombol logout
   var bOut = document.getElementById('btn-logout');
   if(bOut && !bOut.__bound){
     bOut.__bound = true;
     bOut.innerHTML = window.ico('logout',18);
     bOut.addEventListener('click', function(){ window.logoutConfirm(); });
   }
-  // Panduan FAB (opsional)
+
+  // FAB Panduan
   var bPanduan = document.getElementById('btn-panduan');
   if(bPanduan && !bPanduan.__bound){
     bPanduan.__bound = true;
@@ -955,6 +1027,8 @@ window.__boot = function(){
   function start(){
     if(started) return; started = true;
     if(loading) loading.style.display = 'none';
+    // sinkronkan tema sejak awal
+    window.__applyTheme(window.__getPreferredTheme());
     if(window.currentUser) window.showApp();
     else window.showLogin();
   }
