@@ -1419,7 +1419,47 @@ window.fxHapusFoto = function(){
     return ret;
   };
 })();
+/* ============================================================
+   R. Tombol Status Firebase (guru/admin)
+   ============================================================ */
+(function injectStatusBtn(){
+  var orig = window.openGuruMenu;
+  if (typeof orig !== 'function') return;
+  window.openGuruMenu = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(function(){
+      var modal = document.getElementById('modal-body');
+      if (!modal) return;
+      // Tambahkan section "Server" di menu guru
+      var scroll = modal.querySelector('.fx-menu-scroll');
+      if (!scroll) return;
+      if (scroll.querySelector('[data-fx-menu="openStatusFirebase"]')) return;
 
+      var newSection = document.createElement('div');
+      newSection.innerHTML =
+        '<div class="fx-menu-section">' + ic('layers','sm') + ' Server</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
+          '<button class="fx-mi-tile" data-fx-menu="openStatusFirebase">' +
+            '<div class="fx-mi">' + ic('activity', 20) + '</div>' +
+            '<div class="fx-ml">Status Server</div></button>' +
+        '</div>';
+      scroll.appendChild(newSection);
+      if (window.hydrateIcons) window.hydrateIcons(newSection);
+    }, 100);
+    return ret;
+  };
+})();
+
+/* Handler fungsi fxSync... dipanggil dari panel status */
+if (typeof window.fxSyncPrimToBack === 'undefined'){
+  // Placeholder kalau multifirebase tidak dimuat
+  window.fxSyncPrimToBack = function(){ alert('Modul multi-Firebase belum dimuat'); };
+  window.fxSyncBackToPrim = function(){ alert('Modul multi-Firebase belum dimuat'); };
+  window.fxForceSwitchBackup = function(){ alert('Modul multi-Firebase belum dimuat'); };
+  window.fxTryRecoverPrimary = function(){ alert('Modul multi-Firebase belum dimuat'); };
+}
+
+console.log('[features-fix] v6.1 FINAL loaded');
 console.log('[features-fix] v6.0 FINAL loaded');
 console.log('  → Foto profil siswa (max 200KB)');
 console.log('  → Peran dikunci (default pemain)');
