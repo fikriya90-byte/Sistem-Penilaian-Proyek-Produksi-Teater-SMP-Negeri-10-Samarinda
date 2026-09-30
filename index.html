@@ -6,42 +6,24 @@
 <meta name="theme-color" content="#f8f9fa">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Manajemen Produksi Teater - SMP Negeri 10 Samarinda">
 <title>SP-PPT — Manajemen Produksi Teater</title>
 
-<!-- External -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-<!-- CSS -->
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/components.css">
-<link rel="stylesheet" href="css/responsive.css">
+<link rel="stylesheet" href="styles.css">
 
-<!-- Firebase Config -->
 <script>
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "", authDomain: "", projectId: "",
+  storageBucket: "", messagingSenderId: "", appId: ""
 };
 </script>
 </head>
 <body>
 
-<noscript>
-  <div style="padding:40px;text-align:center;font-family:sans-serif;">
-    <h2>Aplikasi membutuhkan JavaScript</h2>
-    <p>Silakan aktifkan JavaScript di browser Anda.</p>
-  </div>
-</noscript>
-
-<!-- Loading -->
 <div id="loading" class="loading-overlay">
   <div class="loading-box">
     <div class="spinner"></div>
@@ -49,7 +31,6 @@ window.FIREBASE_CONFIG = {
   </div>
 </div>
 
-<!-- Login Screen -->
 <div id="login-screen" class="auth-screen hidden">
   <div class="auth-box">
     <div class="brand">
@@ -60,191 +41,105 @@ window.FIREBASE_CONFIG = {
       <h1>Manajemen Produksi Teater</h1>
       <p>SMP Negeri 10 Samarinda</p>
     </div>
-
     <nav class="tabs">
       <button class="tab active" data-tab="guru">Guru</button>
       <button class="tab" data-tab="siswa">Siswa</button>
       <button class="tab" data-tab="admin">Admin</button>
     </nav>
 
-    <!-- Login Guru -->
     <form id="form-login-guru" class="login-form">
-      <div class="form-group">
-        <label>Email Guru</label>
-        <input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <div class="pw-wrap">
-          <input type="password" id="guru-password" placeholder="Password" autocomplete="current-password">
-          <button type="button" class="pw-toggle" data-target="guru-password"></button>
-        </div>
-      </div>
+      <div class="form-group"><label>Email Guru</label>
+        <input type="email" id="guru-email" autocomplete="username"></div>
+      <div class="form-group"><label>Password</label>
+        <div class="pw-wrap"><input type="password" id="guru-password" autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-target="guru-password"></button></div></div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk</button>
     </form>
 
-    <!-- Login Siswa -->
     <form id="form-login-siswa" class="login-form hidden">
-      <div class="form-group">
-        <label>Kelas</label>
-        <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select>
-      </div>
-      <div class="form-group">
-        <label>Email atau No. WhatsApp</label>
-        <input type="text" id="siswa-login" placeholder="email atau 08123456789" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <div class="pw-wrap">
-          <input type="password" id="siswa-password" placeholder="Password" autocomplete="current-password">
-          <button type="button" class="pw-toggle" data-target="siswa-password"></button>
-        </div>
-      </div>
+      <div class="form-group"><label>Kelas</label>
+        <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select></div>
+      <div class="form-group"><label>Email atau No. WhatsApp</label>
+        <input type="text" id="siswa-login" autocomplete="username"></div>
+      <div class="form-group"><label>Password</label>
+        <div class="pw-wrap"><input type="password" id="siswa-password" autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-target="siswa-password"></button></div></div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk</button>
-      <div class="form-footer">
-        Belum punya akun? <a href="#" id="link-register">Daftar</a>
-      </div>
+      <div class="form-footer">Belum punya akun? <a href="#" id="link-register">Daftar</a></div>
     </form>
 
-    <!-- Login Admin -->
     <form id="form-login-admin" class="login-form hidden">
-      <div class="form-group">
-        <label>Email Admin</label>
-        <input type="email" id="admin-email" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>Password Admin</label>
-        <div class="pw-wrap">
-          <input type="password" id="admin-password" autocomplete="current-password">
-          <button type="button" class="pw-toggle" data-target="admin-password"></button>
-        </div>
-      </div>
+      <div class="form-group"><label>Email Admin</label>
+        <input type="email" id="admin-email" autocomplete="username"></div>
+      <div class="form-group"><label>Password Admin</label>
+        <div class="pw-wrap"><input type="password" id="admin-password" autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-target="admin-password"></button></div></div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk Admin</button>
     </form>
   </div>
 </div>
 
-<!-- Register Screen -->
 <div id="register-screen" class="auth-screen hidden">
   <div class="auth-box">
-    <div class="brand">
-      <h1>Pendaftaran Siswa</h1>
-      <p>Gunakan Kode Kelas dari guru</p>
-    </div>
+    <div class="brand"><h1>Pendaftaran Siswa</h1><p>Gunakan Kode Kelas dari guru</p></div>
     <form id="form-register" class="login-form">
-      <div class="form-group">
-        <label>Kode Kelas</label>
-        <input type="text" id="reg-code" placeholder="IXS-2025" class="input-code" maxlength="12">
-      </div>
-      <div class="form-group">
-        <label>Nama Lengkap</label>
-        <input type="text" id="reg-name">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="reg-email" placeholder="nama@siswa.smp.belajar.id">
-      </div>
-      <div class="form-group">
-        <label>No. WhatsApp</label>
-        <input type="tel" id="reg-phone" placeholder="08123456789">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <div class="pw-wrap">
-          <input type="password" id="reg-password">
-          <button type="button" class="pw-toggle" data-target="reg-password"></button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Konfirmasi Password</label>
-        <input type="password" id="reg-confirm">
-      </div>
-      <div class="form-group">
-        <label>Peran</label>
-        <select id="reg-role"></select>
-      </div>
+      <div class="form-group"><label>Kode Kelas</label>
+        <input type="text" id="reg-code" class="input-code" maxlength="12"></div>
+      <div class="form-group"><label>Nama Lengkap</label><input type="text" id="reg-name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email"></div>
+      <div class="form-group"><label>No. WhatsApp</label><input type="tel" id="reg-phone"></div>
+      <div class="form-group"><label>Password</label>
+        <div class="pw-wrap"><input type="password" id="reg-password">
+          <button type="button" class="pw-toggle" data-target="reg-password"></button></div></div>
+      <div class="form-group"><label>Konfirmasi Password</label><input type="password" id="reg-confirm"></div>
+      <div class="form-group"><label>Peran</label><select id="reg-role"></select></div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar</button>
-      <div class="form-footer">
-        Sudah punya akun? <a href="#" id="link-login">Login</a>
-      </div>
+      <div class="form-footer">Sudah punya akun? <a href="#" id="link-login">Login</a></div>
     </form>
   </div>
 </div>
 
-<!-- App Container -->
 <div id="app" class="app-container hidden">
   <header class="app-header">
     <div class="header-brand">
       <img src="https://iili.io/nHsHgfe.png" alt="Logo" onerror="this.style.display='none'">
-      <div>
-        <h2>Manajemen Produksi Teater</h2>
-        <p>SMP Negeri 10 Samarinda</p>
-      </div>
+      <div><h2>Manajemen Produksi Teater</h2><p>SMP Negeri 10 Samarinda</p></div>
     </div>
     <div class="header-actions">
       <button class="btn-icon" id="btn-theme" title="Tema"></button>
       <button class="btn-icon" id="btn-notif" title="Notifikasi">
-        <span class="notif-badge hidden">0</span>
-      </button>
+        <span class="notif-badge hidden">0</span></button>
       <button class="btn-icon" id="btn-password" title="Ubah Password"></button>
       <button class="btn-icon" id="btn-logout" title="Logout"></button>
     </div>
   </header>
-
   <main class="app-main">
     <div class="user-info" id="user-info"></div>
     <div id="main-content" class="main-content"></div>
   </main>
 </div>
 
-<!-- Notification Panel -->
 <aside id="notif-panel" class="notif-panel">
-  <div class="notif-header">
-    <h3>Notifikasi</h3>
-    <button class="btn-icon" id="btn-close-notif"></button>
-  </div>
+  <div class="notif-header"><h3>Notifikasi</h3>
+    <button class="btn-icon" id="btn-close-notif"></button></div>
   <div class="notif-body" id="notif-body"></div>
 </aside>
 <div id="notif-backdrop" class="notif-backdrop"></div>
 
-<!-- Modal -->
 <div id="modal" class="modal-overlay hidden">
   <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="modal-title"></h3>
-      <button class="btn-icon" id="modal-close"></button>
-    </div>
+    <div class="modal-header"><h3 id="modal-title"></h3>
+      <button class="btn-icon" id="modal-close"></button></div>
     <div id="modal-body" class="modal-body"></div>
   </div>
 </div>
 
-<!-- Floating Buttons -->
 <button id="btn-panduan" class="fab fab-panduan" title="Panduan"></button>
 <button id="btn-aduan" class="fab fab-aduan hidden" title="Aduan"></button>
 <button id="btn-kerabat" class="fab fab-kerabat hidden" title="Kerabat Kerja"></button>
 
-<!-- Scripts — URUTAN PENTING -->
-<script src="js/core/utils.js"></script>
-<script src="js/core/firebase.js"></script>
-<script src="js/core/state.js"></script>
-<script src="js/ui/icons.js"></script>
-<script src="js/ui/modal.js"></script>
-<script src="js/ui/notif-panel.js"></script>
-<script src="js/core/auth.js"></script>
-<script src="js/features/checklist.js"></script>
-<script src="js/features/penilaian.js"></script>
-<script src="js/features/absensi.js"></script>
-<script src="js/features/naskah.js"></script>
-<script src="js/features/wa-notif.js"></script>
-<script src="js/features/booking.js"></script>
-<script src="js/features/koordinasi.js"></script>
-<script src="js/features/kerabat.js"></script>
-<script src="js/features/dokumen.js"></script>
-<script src="js/features/timeline.js"></script>
-<script src="js/ui/toolbar.js"></script>
-<script src="js/dashboards/siswa.js"></script>
-<script src="js/dashboards/guru.js"></script>
-<script src="js/dashboards/admin.js"></script>
-<script src="js/main.js"></script>
+<script src="js/core.js"></script>
+<script src="js/features.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
