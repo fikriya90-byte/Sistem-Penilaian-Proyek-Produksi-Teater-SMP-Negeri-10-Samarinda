@@ -2,7 +2,8 @@
    SP-PPT v2.0 — CORE
    Sistem Penilaian Proyek Produksi Teater
    SMP Negeri 10 Samarinda
-   Utils + Firebase + State + Auth + Icons + Modal + Notif + Toolbar + Theme + Boot
+   Utils + Firebase + State + Auth + Icons + Modal + Notif
+   + Toolbar + Theme + Dashboard + Boot
    ============================================================ */
 (function(){
 'use strict';
@@ -418,13 +419,11 @@ window.__toggleTheme = function(){
   window.__applyTheme(next);
 };
 
-// Terapkan tema SEBELUM DOM ready (mencegah "flash" putih)
 (function(){
   var t = window.__getPreferredTheme();
   document.documentElement.setAttribute('data-theme', t);
 })();
 
-// Ikuti perubahan tema sistem jika user belum memilih manual
 try{
   var mq = window.matchMedia('(prefers-color-scheme: dark)');
   var mqHandler = function(e){
@@ -485,15 +484,25 @@ function toolbarGuru(){
     'background:linear-gradient(135deg,rgba(37,99,235,.08),rgba(59,130,246,.04));'+
     'border-left:4px solid var(--primary);border-radius:10px;margin-bottom:14px;">'+
     '<button class="btn btn-primary" data-action="openMainMenu">'+window.ico('gear')+' Menu</button>'+
-    '<button class="btn" data-action="openKelolaChecklistFromMenu">'+window.ico('clipboard')+' Kelola Checklist</button>'+
-    '<button class="btn" data-action="openArsipNaskah">'+window.ico('book')+' Naskah</button></div>';
+    '<button class="btn" data-action="openArsipNaskah">'+window.ico('book')+' Naskah</button>'+
+    '<button class="btn" data-action="openActivityLog">'+window.ico('activity')+' Log</button>'+
+    '<button class="btn" data-action="refreshDashboard">'+window.ico('activity')+' Refresh</button></div>';
 }
 function toolbarAdmin(){
   return '<div class="toolbar-main" style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;'+
     'background:linear-gradient(135deg,rgba(37,99,235,.08),rgba(59,130,246,.04));'+
     'border-left:4px solid var(--primary);border-radius:10px;margin-bottom:14px;">'+
-    '<button class="btn btn-primary" data-action="openMainMenu">'+window.ico('gear')+' Menu</button></div>';
+    '<button class="btn btn-primary" data-action="openMainMenu">'+window.ico('gear')+' Menu</button>'+
+    '<button class="btn" data-action="openAddTeacher">'+window.ico('plus')+' Tambah Guru</button>'+
+    '<button class="btn" data-action="openActivityLog">'+window.ico('activity')+' Log</button>'+
+    '<button class="btn" data-action="refreshDashboard">'+window.ico('activity')+' Refresh</button></div>';
 }
+
+window.refreshDashboard = function(){
+  try{ window.renderDashboard && window.renderDashboard(); window.toast('Dashboard diperbarui','success'); }
+  catch(e){ window.toast('Gagal refresh','error'); }
+};
+
 document.addEventListener('click',function(e){
   var el = e.target.closest('[data-action]'); if(!el) return;
   var action = el.getAttribute('data-action');
@@ -508,6 +517,7 @@ document.addEventListener('click',function(e){
     catch(err){ console.error('[toolbar]',action,err); window.toast('Gagal: '+err.message,'error'); }
   },cf?150:0);
 });
+
 window.openMainMenu = function(){
   if(window.myType()==='admin') return openAdminMenu();
   if(window.myType()==='guru') return openGuruMenu();
@@ -540,19 +550,11 @@ function openSiswaMenu(){
 function openGuruMenu(){
   var h = '<div class="alert alert-info">'+window.ico('gear')+'<div><b>Menu Guru</b></div></div>'+
     '<div style="display:flex;flex-direction:column;gap:8px;">';
-  var cid = window.__viewClassId;
-  var items = [];
-  if(cid){
-    items.push({i:'clipboard',l:'Kelola Checklist',a:'openChecklistManage'});
-    items.push({i:'key',l:'Lihat Password Siswa',a:'openGuruPasswordView'});
-  }
-  items = items.concat([
-    {i:'book',l:'Arsip Naskah',a:'openArsipNaskah'},
-    {i:'activity',l:'Log Aktivitas',a:'openActivityLog'},
-    {i:'key',l:'Ubah Password',a:'openChangePassword'},
-    {i:'logout',l:'Keluar',a:'logoutConfirm'}
-  ]);
-  items.forEach(function(it){
+  [{i:'book',l:'Arsip Naskah',a:'openArsipNaskah'},
+   {i:'activity',l:'Log Aktivitas',a:'openActivityLog'},
+   {i:'key',l:'Ubah Password',a:'openChangePassword'},
+   {i:'logout',l:'Keluar',a:'logoutConfirm'}]
+  .forEach(function(it){
     h += '<button class="btn" style="justify-content:flex-start;" data-action="'+it.a+'" data-close-first>'+
       window.ico(it.i)+' '+it.l+'</button>';
   });
@@ -733,7 +735,6 @@ document.addEventListener('DOMContentLoaded',function(){
       return window.U.normEmail(x.email)===email && String(x.password).trim()===pw;
     });
     if(!t){
-      // fallback: fetch langsung dari Firestore
       if(window.fbReady){
         window.fsGet('teachers',email).then(function(snap){
           if(snap.exists){
@@ -918,6 +919,10 @@ function startRealtime(){
       window.DB.classes = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
       console.log('[classes] loaded:', window.DB.classes.length);
       populateClassDropdown();
+      // refresh dashboard kalau user sedang login
+      if(window.currentUser && typeof window.renderDashboard === 'function'){
+        try{ window.renderDashboard(); }catch(e){}
+      }
     }, function(e){ console.warn('[classes]', e.message); });
 
     window.fb.collection('notifications').onSnapshot(function(snap){
@@ -943,6 +948,217 @@ function startRealtime(){
 }
 
 /* ============================================================
+   DASHBOARD
+   ============================================================ */
+window.renderDashboard = function(){
+  var mc = document.getElementById('main-content');
+  if(!mc) return;
+  var old = mc.querySelector('.dashboard-wrap');
+  if(old) old.remove();
+
+  var type = window.myType();
+  var h = '';
+  if(type === 'guru' || type === 'admin')  h = buildGuruAdminDashboard();
+  else if(type === 'siswa')                h = buildSiswaDashboard();
+  else return;
+
+  var wrap = document.createElement('div');
+  wrap.className = 'dashboard-wrap';
+  wrap.style.marginBottom = '16px';
+  wrap.innerHTML = h;
+
+  // Sisipkan setelah toolbar (kalau ada), atau di awal
+  var toolbar = mc.querySelector('.toolbar-main');
+  if(toolbar && toolbar.nextSibling){
+    mc.insertBefore(wrap, toolbar.nextSibling);
+  } else if(toolbar){
+    mc.appendChild(wrap);
+  } else {
+    mc.insertBefore(wrap, mc.firstChild);
+  }
+};
+
+function statCard(icon, label, value, color){
+  var colorMap = {
+    primary:'var(--primary)', success:'var(--success)',
+    warning:'var(--warning)', info:'var(--info)', danger:'var(--danger)'
+  };
+  var softMap = {
+    primary:'var(--primary-soft)', success:'var(--success-soft)',
+    warning:'var(--warning-soft)', info:'var(--info-soft)', danger:'var(--danger-soft)'
+  };
+  return '<div class="card" style="margin:0;display:flex;align-items:center;gap:12px;">'+
+    '<div style="width:48px;height:48px;border-radius:12px;background:'+softMap[color]+';'+
+      'display:flex;align-items:center;justify-content:center;color:'+colorMap[color]+';flex-shrink:0;">'+
+      window.ico(icon,22)+
+    '</div>'+
+    '<div style="flex:1;min-width:0;">'+
+      '<div style="font-size:11.5px;color:var(--text-muted);font-weight:600;'+
+        'text-transform:uppercase;letter-spacing:.04em;">'+label+'</div>'+
+      '<div style="font-size:22px;font-weight:800;color:var(--text-strong);line-height:1.1;margin-top:2px;">'+
+        value+'</div>'+
+    '</div></div>';
+}
+
+function buildGuruAdminDashboard(){
+  var type = window.myType();
+  var isAdmin = type === 'admin';
+  var classes = isAdmin ? (window.DB.classes||[]) : window.myClasses();
+  var totalSiswa = 0;
+  classes.forEach(function(c){ totalSiswa += (c.students||[]).length; });
+
+  var h = '<div class="alert alert-info" style="margin-bottom:16px;">'+
+    window.ico('info')+'<div>'+
+    '<b>Selamat datang, '+window.U.esc(window.myName())+'!</b><br>'+
+    (isAdmin
+      ? 'Anda login sebagai <b>Admin</b>. Kelola semua kelas di sistem ini.'
+      : 'Berikut ringkasan kelas yang Anda ajar. Klik kelas untuk melihat detail.')+
+    '</div></div>';
+
+  h += '<div class="grid" style="margin-bottom:18px;">';
+  h += statCard('school','Total Kelas', classes.length, 'primary');
+  h += statCard('users','Total Siswa', totalSiswa, 'success');
+  h += statCard('clipboard','Checklist',
+    Object.keys(window.DB.checklists||{}).length, 'warning');
+  h += statCard('bell','Notifikasi',
+    (window.DB.notifications||[]).length, 'info');
+  h += '</div>';
+
+  h += '<div class="card">'+
+    '<h3>'+window.ico('school',18)+' Daftar Kelas ('+classes.length+')</h3>';
+  if(classes.length === 0){
+    h += '<div class="empty-state">'+window.ico('school',40)+
+      '<p>Belum ada kelas untuk akun Anda.</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);margin-top:-8px;">'+
+      'Minta admin menambahkan kelas dengan <code>teacherEmail</code> = <b>'+
+      window.U.esc(window.currentUser.email||'')+'</b></p></div>';
+  } else {
+    h += '<div class="grid">';
+    classes.forEach(function(c){
+      var nSiswa = (c.students||[]).length;
+      h += '<div class="card" style="margin:0;cursor:pointer;transition:transform .15s;" '+
+        'onmouseover="this.style.transform=\'translateY(-2px)\'" '+
+        'onmouseout="this.style.transform=\'none\'" '+
+        'data-action="openClassDetail" data-arg="'+c.id+'">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
+          '<div style="width:44px;height:44px;border-radius:10px;background:var(--primary-soft);'+
+            'display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">'+
+            window.ico('school',22)+
+          '</div>'+
+          '<div style="flex:1;min-width:0;">'+
+            '<div style="font-weight:700;font-size:14px;color:var(--text-strong);'+
+              'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
+              window.U.esc(c.name||'Kelas')+'</div>'+
+            '<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">'+
+              (c.code ? 'Kode: <b>'+window.U.esc(c.code)+'</b>' : 'Tanpa kode')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+          '<span class="badge badge-primary">'+window.ico('users','sm')+' '+nSiswa+' siswa</span>'+
+          (c.teacherEmail
+            ? '<span class="badge badge-gray">'+window.ico('user','sm')+' '+
+              window.U.esc(c.teacherEmail.split('@')[0])+'</span>'
+            : '')+
+        '</div>'+
+      '</div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  return h;
+}
+
+function buildSiswaDashboard(){
+  var cid = window.myCid();
+  var c = (window.DB.classes||[]).find(function(x){ return x.id===cid; });
+  var role = window.myRole();
+  var roleLabel = (window.ROLES[role]&&window.ROLES[role].label)||role;
+  var notifs = (window.DB.notifications||[]).filter(function(n){
+    return n.classId===cid && (n.toId==='all' || n.toId===window.mySid());
+  });
+  var checklist = window.getChecklist ? window.getChecklist(cid) : {items:[]};
+  var myTasks = (checklist.items||[]).filter(function(it){
+    return !it.isPersonal && it.assignedRole===role;
+  });
+  var doneTasks = myTasks.filter(function(x){ return x.done; }).length;
+
+  var h = '<div class="alert alert-info" style="margin-bottom:16px;">'+
+    window.ico('user')+'<div>'+
+    '<b>Halo, '+window.U.esc(window.myName())+'!</b><br>'+
+    'Kelas: <b>'+window.U.esc(c?c.name:'-')+'</b> · '+
+    'Peran: <b>'+window.U.esc(roleLabel)+'</b>'+
+    '</div></div>';
+
+  h += '<div class="grid" style="margin-bottom:18px;">';
+  h += statCard('clipboard','Tugas Saya', doneTasks+'/'+myTasks.length, 'primary');
+  h += statCard('bell','Notifikasi', notifs.length, 'info');
+  h += statCard('users','Anggota Tim',
+    c ? ((c.students||[]).length) : 0, 'success');
+  h += '</div>';
+
+  h += '<div class="card">'+
+    '<h3>'+window.ico('activity',18)+' Aksi Cepat</h3>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+      '<button class="btn btn-primary" data-action="openTugasSaya">'+window.ico('clipboard')+' Tugas Saya</button>'+
+      '<button class="btn" data-action="openAbsensiHariIni">'+window.ico('calendar')+' Absensi</button>'+
+      '<button class="btn" data-action="openChecklistView">'+window.ico('users')+' Tim Saya</button>'+
+      '<button class="btn" data-action="openRubrikPenilaian">'+window.ico('target')+' Rubrik</button>'+
+    '</div>'+
+  '</div>';
+
+  return h;
+}
+
+/* ============================================================
+   DETAIL KELAS (untuk guru/admin)
+   ============================================================ */
+window.openClassDetail = function(cid){
+  if(!cid) return;
+  window.__viewClassId = cid;
+  var c = (window.DB.classes||[]).find(function(x){ return x.id===cid; });
+  if(!c){ window.toast('Kelas tidak ditemukan','error'); return; }
+
+  var students = c.students||[];
+  var h = '<div class="alert alert-info">'+window.ico('school')+'<div>'+
+    '<b>'+window.U.esc(c.name)+'</b>'+
+    (c.code?' · Kode: <b>'+window.U.esc(c.code)+'</b>':'')+
+    '</div></div>';
+
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">'+
+    '<button class="btn btn-primary btn-sm" data-action="openChecklistManage" data-arg="'+cid+'" data-close-first>'+
+      window.ico('clipboard','sm')+' Kelola Checklist</button>'+
+    '<button class="btn btn-sm" data-action="openGuruPasswordView" data-arg="'+cid+'" data-close-first>'+
+      window.ico('key','sm')+' Password Siswa</button>'+
+  '</div>';
+
+  h += '<div class="card" style="margin-bottom:12px;">'+
+    '<h3 style="font-size:14px;">'+window.ico('users',16)+' Siswa ('+students.length+')</h3>';
+  if(students.length===0){
+    h += '<div class="empty-state" style="padding:24px;">'+window.ico('users',32)+
+      '<p>Belum ada siswa di kelas ini.</p></div>';
+  } else {
+    h += '<div class="table-wrap"><table style="min-width:auto;">'+
+      '<thead><tr><th>No</th><th>Nama</th><th>Peran</th><th>Kontak</th></tr></thead><tbody>';
+    students.forEach(function(s,i){
+      var rl = (window.ROLES[s.role]&&window.ROLES[s.role].label)||s.role||'-';
+      h += '<tr>'+
+        '<td>'+(i+1)+'</td>'+
+        '<td><b>'+window.U.esc(s.name||'-')+'</b></td>'+
+        '<td><span class="badge badge-primary">'+window.U.esc(rl)+'</span></td>'+
+        '<td style="font-size:11.5px;color:var(--text-muted);">'+
+          window.U.esc(s.email||'')+(s.phone?'<br>'+window.U.esc(s.phone):'')+'</td>'+
+      '</tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+
+  window.openModal('Detail Kelas — '+c.name, h);
+};
+
+/* ============================================================
    SHOW APP setelah login
    ============================================================ */
 window.showApp = function(){
@@ -965,6 +1181,7 @@ window.showApp = function(){
   }
 
   try{ window.injectToolbar  && window.injectToolbar();  }catch(e){ console.warn(e); }
+  try{ window.renderDashboard && window.renderDashboard(); }catch(e){ console.warn(e); }
   try{ window.injectCarousel && window.injectCarousel(); }catch(e){ console.warn(e); }
   try{ window.injectKerabat  && window.injectKerabat();  }catch(e){ console.warn(e); }
   try{ window.updateNotifBadge && window.updateNotifBadge(); }catch(e){ console.warn(e); }
@@ -1005,8 +1222,8 @@ window.showApp = function(){
       window.openModal('Panduan Singkat',
         '<div class="alert alert-info">'+window.ico('info')+'<div>'+
         '<b>Langkah cepat:</b><br>'+
-        '1. Guru/Admin membuat kelas & menambah siswa.<br>'+
-        '2. Guru memberi kode kelas untuk pendaftaran siswa.<br>'+
+        '1. Guru/Admin mengelola kelas & siswa.<br>'+
+        '2. Guru memberikan kode kelas untuk pendaftaran siswa.<br>'+
         '3. Siswa login dengan email/WA + password.<br>'+
         '4. Gunakan tombol di toolbar untuk mengakses fitur.</div></div>');
     });
@@ -1027,7 +1244,6 @@ window.__boot = function(){
   function start(){
     if(started) return; started = true;
     if(loading) loading.style.display = 'none';
-    // sinkronkan tema sejak awal
     window.__applyTheme(window.__getPreferredTheme());
     if(window.currentUser) window.showApp();
     else window.showLogin();
