@@ -1,12 +1,12 @@
 /* ============================================================
-   SP-PPT app.js — v22 FINAL CONSOLIDATED
-   Semua fitur dalam 1 file. Tampilan pakai styles.css asli.
+   SP-PPT app.js — v23 FINAL COMPLETE
+   Satu file berisi semua fitur. Tampilan pakai styles.css asli.
    ============================================================ */
 (function(){
 'use strict';
 
 /* ============================================================
-   1. KONSTANTA
+   KONSTANTA
    ============================================================ */
 var ADMIN = {
   email: 'fikri.yassaar15@guru.smp.belajar.id',
@@ -47,10 +47,10 @@ var ROLES = {
 };
 
 var DEFAULT_STAGES = [
-  {id:'s1',name:'Perencanaan',subtitle:'Pra-Produksi',weight:20,desc:'Konsep, jadwal, RAB',longDesc:'Tahap perencanaan sebelum latihan dimulai.'},
-  {id:'s2',name:'Pelaksanaan',subtitle:'Produksi & Latihan',weight:35,desc:'Latihan & eksekusi tugas.',longDesc:'Tahap terlama. Termasuk absensi 15%.'},
-  {id:'s3',name:'Pertunjukan',subtitle:'Show Time',weight:35,desc:'Hari H pertunjukan.',longDesc:'Hari puncak pertunjukan.'},
-  {id:'s4',name:'Evaluasi',subtitle:'Pasca-Produksi',weight:10,desc:'Laporan & refleksi.',longDesc:'Tahap akhir.'}
+  {id:'s1',name:'Perencanaan',subtitle:'Pra-Produksi',weight:20,desc:'Konsep, jadwal, RAB'},
+  {id:'s2',name:'Pelaksanaan',subtitle:'Produksi & Latihan',weight:35,desc:'Latihan & eksekusi'},
+  {id:'s3',name:'Pertunjukan',subtitle:'Show Time',weight:35,desc:'Hari H'},
+  {id:'s4',name:'Evaluasi',subtitle:'Pasca-Produksi',weight:10,desc:'Laporan & refleksi'}
 ];
 
 var RUBRICS = {
@@ -145,7 +145,7 @@ function canEvaluate(evalRole, targetRole){
 }
 
 /* ============================================================
-   2. STATE
+   STATE
    ============================================================ */
 window.currentUser = null;
 window.DB = {
@@ -166,37 +166,35 @@ window.DB = {
 window.__viewClassId = null;
 
 /* ============================================================
-   3. UTILS
+   UTILS
    ============================================================ */
-window.$ = function(id){ return document.getElementById(id); };
-var $ = window.$;
+var $ = function(id){ return document.getElementById(id); };
+window.$ = $;
 
-window.esc = function(s){
+var esc = function(s){
   return String(s == null ? '' : s).replace(/[<>&"']/g, function(c){
     return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c];
   });
 };
-var esc = window.esc;
+window.esc = esc;
 
-window.uid = function(){
-  return 'id_' + Date.now().toString(36) + Math.random().toString(36).substr(2,6);
-};
-var uid = window.uid;
+var uid = function(){ return 'id_' + Date.now().toString(36) + Math.random().toString(36).substr(2,6); };
+window.uid = uid;
 
-window.fmtDate = function(ts){
+var fmtDate = function(ts){
   if (!ts) return '-';
   return new Date(ts).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 };
-var fmtDate = window.fmtDate;
+window.fmtDate = fmtDate;
 
-window.fmtDateShort = function(s){
+var fmtDateShort = function(s){
   if (!s) return '-';
   return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
 };
-var fmtDateShort = window.fmtDateShort;
+window.fmtDateShort = fmtDateShort;
 
-window.todayISO = function(){ return new Date().toISOString().split('T')[0]; };
-var todayISO = window.todayISO;
+var todayISO = function(){ return new Date().toISOString().split('T')[0]; };
+window.todayISO = todayISO;
 
 window.toast = function(msg, type){
   type = type || 'info';
@@ -216,7 +214,7 @@ window.toast = function(msg, type){
 };
 
 /* ============================================================
-   4. ICONS
+   ICONS
    ============================================================ */
 var ICONS = {
   sun:'<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
@@ -239,7 +237,6 @@ var ICONS = {
   send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
   phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
   check:'<path d="M20 6L9 17l-5-5"/>',
-  checkCircle:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
   checkSquare:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
   trash:'<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
   edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
@@ -260,17 +257,13 @@ var ICONS = {
   image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
   award:'<circle cx="12" cy="8" r="7"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/>',
   star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
-  sparkle:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/>',
   school:'<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
   back:'<path d="M19 12H5M12 19l-7-7 7-7"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   briefcase:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
   hash:'<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>',
   search:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
-  fileText:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
-  chevronRight:'<polyline points="9 18 15 12 9 6"/>',
-  folder:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
-  music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'
+  fileText:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>'
 };
 
 window.ico = function(name, size){
@@ -278,7 +271,7 @@ window.ico = function(name, size){
   var s = size === 'sm' ? 13 : size === 'lg' ? 20 : size === 'md' ? 16 : (typeof size === 'number' ? size : 16);
   return '<svg class="ico" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" ' +
     'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
-    'stroke-linejoin="round">' + p + '</svg>';
+    'stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;">' + p + '</svg>';
 };
 
 window.hydrateIcons = function(root){
@@ -291,7 +284,7 @@ window.hydrateIcons = function(root){
 };
 
 /* ============================================================
-   5. THEME
+   THEME
    ============================================================ */
 window.setTheme = function(mode){
   try { localStorage.setItem('sppt_theme', mode); } catch(e){}
@@ -306,7 +299,7 @@ window.setTheme = function(mode){
 };
 
 /* ============================================================
-   6. FIREBASE
+   FIREBASE
    ============================================================ */
 var fb = null, fbReady = false;
 try {
@@ -332,32 +325,39 @@ window.fbDel = function(col, id){
 };
 
 /* ============================================================
-   7. SCREEN CONTROL
+   SCREEN CONTROL
    ============================================================ */
 function hideAll(){
-  ['loading-screen','login-screen','register-screen','app-container'].forEach(function(id){
-    var el = $(id);
+  var ids = ['loading-screen','login-screen','register-screen','app-container'];
+  for (var i = 0; i < ids.length; i++){
+    var el = $(ids[i]);
     if (el) el.classList.add('hidden');
-  });
+  }
 }
+
 window.showLoginPage = function(){
   hideAll();
-  $('login-screen').classList.remove('hidden');
-  $('btn-floating-panduan').classList.add('hidden');
+  var l = $('login-screen'); if (l) l.classList.remove('hidden');
+  var f = $('btn-floating-panduan'); if (f) f.classList.add('hidden');
   window.__viewClassId = null;
 };
+
 window.showRegisterPage = function(){
   hideAll();
-  $('register-screen').classList.remove('hidden');
+  var r = $('register-screen'); if (r) r.classList.remove('hidden');
 };
+
 window.switchLoginTab = function(t){
-  ['guru','siswa','admin'].forEach(function(x){
+  var tabs = ['guru','siswa','admin'];
+  for (var i = 0; i < tabs.length; i++){
+    var x = tabs[i];
     var tb = $('tab-login-' + x);
     var fm = $('form-login-' + x);
     if (tb) tb.classList.toggle('active', x === t);
     if (fm) fm.classList.toggle('hidden', x !== t);
-  });
+  }
 };
+
 window.togglePw = function(id, btn){
   var inp = $(id);
   if (!inp) return;
@@ -366,16 +366,15 @@ window.togglePw = function(id, btn){
 };
 
 /* ============================================================
-   8. LOGIN
+   LOGIN
    ============================================================ */
 window.doLoginGuru = function(){
   var e = ($('guru-email').value || '').trim().toLowerCase();
   var p = ($('guru-password').value || '').trim();
-
   console.log('[loginGuru] mencoba:', e);
+
   if (!e || !p){ alert('Lengkapi email dan password!'); return; }
 
-  // 3 lapis
   var t = TEACHERS.find(function(x){
     return x.email.toLowerCase() === e && x.password === p;
   });
@@ -403,8 +402,7 @@ function finishGuru(t){
   window.currentUser = {
     type:'guru', email:t.email, name:t.name || t.email, phone:t.phone || ''
   };
-  saveSession();
-  logActivity('login', (t.name || t.email) + ' login', {});
+  try { localStorage.setItem('sppt_session', JSON.stringify(window.currentUser)); } catch(e){}
   console.log('[loginGuru] sukses:', t.name);
   fbSet('teachers', t.email, t).catch(function(){});
   showApp();
@@ -436,8 +434,7 @@ window.doLoginSiswa = function(){
       type:'siswa', classId:c.id, studentId:s.id,
       name:s.name, role:s.role, phone:s.phone || '', email:s.email || ''
     };
-    saveSession();
-    logActivity('login', s.name + ' login', {classId:c.id});
+    try { localStorage.setItem('sppt_session', JSON.stringify(window.currentUser)); } catch(e){}
     console.log('[loginSiswa] sukses:', s.name);
     showApp();
   }
@@ -467,7 +464,7 @@ window.doLoginAdmin = function(){
   var p = ($('admin-password').value || '').trim();
   if (e === ADMIN.email.toLowerCase() && p === ADMIN.password){
     window.currentUser = {type:'admin', email:ADMIN.email, name:ADMIN.name};
-    saveSession();
+    try { localStorage.setItem('sppt_session', JSON.stringify(window.currentUser)); } catch(e){}
     showApp();
   } else {
     alert('Email atau password admin salah!');
@@ -479,12 +476,11 @@ window.doLogout = function(){
   try { localStorage.removeItem('sppt_session'); } catch(e){}
   window.currentUser = null;
   window.DB.classes = [];
-  hideAll();
-  window.showLoginPage();
+  showLoginPage();
 };
 
 /* ============================================================
-   9. REGISTER
+   REGISTER
    ============================================================ */
 window.doRegister = function(){
   var code = ($('daftar-code').value || '').trim().toUpperCase();
@@ -510,13 +506,6 @@ window.doRegister = function(){
   });
   if (dup){ alert('Email sudah terdaftar!'); return; }
 
-  var dupPhone = (window.DB.classes || []).some(function(c){
-    return (c.students || []).some(function(s){
-      return String(s.phone||'').replace(/\D/g,'') === phone;
-    });
-  });
-  if (dupPhone){ alert('No. WA sudah terdaftar!'); return; }
-
   var ns = {
     id: uid(), name: name, email: email, phone: phone,
     password: pw, role: 'pemain', registeredAt: Date.now()
@@ -535,39 +524,20 @@ window.doRegister = function(){
     }).catch(function(){});
     logActivity('student_register', name + ' mendaftar di ' + cls.name, {classId: cls.id});
     alert('Pendaftaran berhasil!\n\nSilakan login.');
-    window.showLoginPage();
-    window.switchLoginTab('siswa');
+    showLoginPage();
+    switchLoginTab('siswa');
     setTimeout(function(){
-      if ($('siswa-kelas')) $('siswa-kelas').value = cls.id;
-      if ($('siswa-email')) $('siswa-email').value = email;
+      var sk = $('siswa-kelas'); if (sk) sk.value = cls.id;
+      var se = $('siswa-email'); if (se) se.value = email;
     }, 300);
   }).catch(function(err){ alert('Gagal: ' + err.message); });
 };
 
 /* ============================================================
-   10. SESSION
-   ============================================================ */
-var SESSION_KEY = 'sppt_session';
-function saveSession(){
-  try {
-    if (window.currentUser) localStorage.setItem(SESSION_KEY, JSON.stringify(window.currentUser));
-  } catch(e){}
-}
-window.saveSession = saveSession;
-
-function getSession(){
-  try {
-    var s = localStorage.getItem(SESSION_KEY);
-    return s ? JSON.parse(s) : null;
-  } catch(e){ return null; }
-}
-
-/* ============================================================
-   11. HELPERS - Class
+   HELPERS
    ============================================================ */
 window.isGuru = function(){ return window.currentUser && (window.currentUser.type === 'guru' || window.currentUser.type === 'admin'); };
 window.isSiswa = function(){ return window.currentUser && window.currentUser.type === 'siswa'; };
-window.isAdmin = function(){ return window.currentUser && window.currentUser.type === 'admin'; };
 
 window.myClasses = function(){
   if (!window.currentUser) return [];
@@ -591,11 +561,6 @@ window.getActiveStages = function(cid){
   });
 };
 
-window.isStageActive = function(cid, sid){
-  var activeIds = window.DB.activeStages[cid] || [];
-  return activeIds.indexOf(sid) >= 0;
-};
-
 window.logActivity = function(type, msg, meta){
   var a = {
     id: uid(), type: type || 'info', message: msg || '', meta: meta || {},
@@ -608,7 +573,7 @@ window.logActivity = function(type, msg, meta){
 };
 
 /* ============================================================
-   12. MODAL
+   MODAL
    ============================================================ */
 window.openModal = function(title, body){
   var mt = $('modal-title');
@@ -629,7 +594,7 @@ document.addEventListener('click', function(e){
 });
 
 /* ============================================================
-   13. NOTIF
+   NOTIF
    ============================================================ */
 function getNotifKey(){
   var u = window.currentUser;
@@ -697,7 +662,7 @@ function renderNotifPanel(){
   if (!body) return;
   var notifs = window.getNotifs().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
   if (notifs.length === 0){
-    body.innerHTML = '<div class="notif-empty">' + window.ico('bell', 40) + '<p>Belum ada notifikasi</p></div>';
+    body.innerHTML = '<div class="notif-empty">' + window.ico('bell', 40) + '<p style="margin-top:10px;">Belum ada notifikasi</p></div>';
     return;
   }
   var key = getNotifKey();
@@ -718,13 +683,14 @@ function renderNotifPanel(){
         (isRead ? '<span class="badge badge-success">' + window.ico('check','sm') + ' Dibaca</span>' :
           '<button class="btn btn-sm btn-primary" onclick="markRead(\'' + n.id + '\')">' + window.ico('check','sm') + ' Dibaca</button>') +
         (window.currentUser.type === 'siswa' && n.type === 'tugas' ?
-          '<button class="btn btn-sm btn-success" onclick="tandaiTugasSelesai(\'' + n.id + '\')">' + window.ico('checkSquare','sm') + ' Tugas Selesai</button>' : '') +
+          '<button class="btn btn-sm btn-success" onclick="tandaiTugasSelesai(\'' + n.id + '\')">' + window.ico('checkSquare','sm') + ' Selesai</button>' : '') +
         '<button class="btn btn-sm btn-danger" onclick="delNotif(\'' + n.id + '\')">' + window.ico('trash','sm') + '</button>' +
       '</div>' +
     '</div>';
   });
   body.innerHTML = h;
 }
+window.renderNotifPanel = renderNotifPanel;
 
 window.markRead = function(id){
   var n = (window.DB.notifications || []).find(function(x){ return x.id === id; });
@@ -745,7 +711,7 @@ window.tandaiTugasSelesai = function(id){
   if (db.indexOf(key) >= 0){ alert('Sudah ditandai'); return; }
   db.push(key);
   fbSet('notifications', id, Object.assign({}, n, {doneBy: db})).then(function(){
-    if (window.logActivity) window.logActivity('task_done', (window.currentUser.name || 'User') + ' tandai selesai: ' + (n.title || ''), {classId: n.classId});
+    logActivity('task_done', (window.currentUser.name || 'User') + ' tandai selesai', {classId: n.classId});
     alert('Tugas ditandai selesai!');
     renderNotifPanel();
   });
@@ -759,18 +725,20 @@ window.delNotif = function(id){
 };
 
 /* ============================================================
-   14. SHOW APP
+   SHOW APP
    ============================================================ */
 function showApp(){
   hideAll();
-  $('app-container').classList.remove('hidden');
-  $('btn-floating-panduan').classList.remove('hidden');
+  var app = $('app-container'); if (app) app.classList.remove('hidden');
+  var fp = $('btn-floating-panduan'); if (fp) fp.classList.remove('hidden');
+
+  var u = window.currentUser;
+  if (!u) return;
 
   var btnPw = $('btn-change-pw');
-  if (btnPw) btnPw.style.display = window.currentUser.type === 'admin' ? 'none' : 'inline-flex';
+  if (btnPw) btnPw.style.display = u.type === 'admin' ? 'none' : 'inline-flex';
 
   var l = '';
-  var u = window.currentUser;
   if (u.type === 'guru'){
     l = window.ico('user','sm') + ' <span>' + esc(u.name) + ' — <b>Guru Pengampu</b></span>';
   } else if (u.type === 'admin'){
@@ -780,22 +748,24 @@ function showApp(){
     var rl = (ROLES[u.role] || {}).label || u.role;
     l = window.ico('user','sm') + ' <span>' + esc(u.name) + ' — <b>' + rl + '</b> — <b>Kelas ' + (c ? esc(c.name) : '-') + '</b></span>';
   }
-  $('user-info').innerHTML = l;
+  var ui = $('user-info'); if (ui) ui.innerHTML = l;
 
   if (u.type === 'guru') renderGuruDash();
   else if (u.type === 'admin') renderAdminDash();
   else renderSiswaDash();
 
   window.updateBadge();
+  window.hydrateIcons();
 }
 window.showApp = showApp;
 
 /* ============================================================
-   15. DASHBOARD GURU
+   DASHBOARD GURU
    ============================================================ */
 function renderGuruDash(){
   window.__viewClassId = null;
-  $('header-title-text').innerHTML = window.ico('gear') + ' Dashboard Guru Pengampu';
+  var tt = $('header-title-text');
+  if (tt) tt.innerHTML = window.ico('gear') + ' Dashboard Guru Pengampu';
   var mine = window.myClasses();
   var h = '';
   h += '<div class="extras-toolbar-top" style="border:1px solid var(--primary-soft);background:linear-gradient(135deg,var(--primary-soft),var(--info-soft));padding:14px;display:flex;flex-wrap:wrap;gap:8px;border-radius:10px;margin-bottom:14px;">' +
@@ -825,19 +795,21 @@ function renderGuruDash(){
     });
     h += '</div>';
   }
-  $('main-content').innerHTML = h;
+  var mc = $('main-content');
+  if (mc) mc.innerHTML = h;
   window.hydrateIcons();
   window.updateBadge();
 }
 window.renderGuruDash = renderGuruDash;
 
 /* ============================================================
-   16. DASHBOARD ADMIN
+   DASHBOARD ADMIN
    ============================================================ */
 function renderAdminDash(){
-  $('header-title-text').innerHTML = window.ico('shield') + ' Dashboard Admin';
+  var tt = $('header-title-text');
+  if (tt) tt.innerHTML = window.ico('shield') + ' Dashboard Admin';
   var h = '<div class="alert alert-info">' + window.ico('shield') + '<div><b>Area Administrator</b></div></div>';
-  h += '<div class="extras-toolbar-top">' +
+  h += '<div class="extras-toolbar-top" style="border:1px solid var(--primary-soft);background:linear-gradient(135deg,var(--primary-soft),var(--info-soft));padding:14px;display:flex;flex-wrap:wrap;gap:8px;border-radius:10px;margin-bottom:14px;">' +
     '<button class="btn btn-primary" onclick="openTambahGuru()">' + window.ico('personPlus','sm') + ' Tambah Guru</button>' +
     '<button class="btn" onclick="openActivityLog()">' + window.ico('activity','sm') + ' Aktivitas</button>' +
     '</div>';
@@ -860,25 +832,29 @@ function renderAdminDash(){
     });
     h += '</tbody></table></div>';
   }
-  $('main-content').innerHTML = h;
+  var mc = $('main-content');
+  if (mc) mc.innerHTML = h;
   window.hydrateIcons();
   window.updateBadge();
 }
 window.renderAdminDash = renderAdminDash;
 
 /* ============================================================
-   17. DASHBOARD SISWA
+   DASHBOARD SISWA
    ============================================================ */
 function renderSiswaDash(){
-  $('header-title-text').innerHTML = window.ico('user') + ' Dashboard Siswa';
+  var tt = $('header-title-text');
+  if (tt) tt.innerHTML = window.ico('user') + ' Dashboard Siswa';
   var c = window.DB.classes.find(function(x){ return x.id === window.currentUser.classId; });
   if (!c){
-    $('main-content').innerHTML = '<div class="empty-state">' + window.ico('warning',40) + '<p>Kelas tidak ditemukan</p></div>';
+    var mc = $('main-content');
+    if (mc) mc.innerHTML = '<div class="empty-state">' + window.ico('warning',40) + '<p>Kelas tidak ditemukan</p></div>';
     return;
   }
   var me = (c.students || []).find(function(s){ return s.id === window.currentUser.studentId; });
   if (!me){
-    $('main-content').innerHTML = '<div class="empty-state">' + window.ico('warning',40) + '<p>Data siswa tidak ditemukan</p></div>';
+    var mc2 = $('main-content');
+    if (mc2) mc2.innerHTML = '<div class="empty-state">' + window.ico('warning',40) + '<p>Data siswa tidak ditemukan</p></div>';
     return;
   }
   var activeStages = window.getActiveStages(c.id);
@@ -936,14 +912,15 @@ function renderSiswaDash(){
     });
   }
 
-  $('main-content').innerHTML = h;
+  var mc3 = $('main-content');
+  if (mc3) mc3.innerHTML = h;
   window.hydrateIcons();
   window.updateBadge();
 }
 window.renderSiswaDash = renderSiswaDash;
 
 /* ============================================================
-   18. VIEW CLASS
+   VIEW CLASS
    ============================================================ */
 window.viewClass = function(cid){
   if (window.currentUser.type === 'siswa'){ return; }
@@ -996,12 +973,13 @@ window.viewClass = function(cid){
     h += '</tbody></table></div>';
   }
 
-  $('main-content').innerHTML = h;
+  var mc = $('main-content');
+  if (mc) mc.innerHTML = h;
   window.hydrateIcons();
 };
 
 /* ============================================================
-   19. KELAS CRUD
+   KELAS CRUD
    ============================================================ */
 window.openTambahKelas = function(){
   window.openModal('Tambah Kelas',
@@ -1048,7 +1026,7 @@ window.salinKode = function(cid){
 };
 
 /* ============================================================
-   20. SISWA CRUD
+   SISWA CRUD
    ============================================================ */
 window.openTambahSiswa = function(cid){
   var opts = '';
@@ -1136,7 +1114,7 @@ window.hapusSiswa = function(cid, sid){
 };
 
 /* ============================================================
-   21. SISTEM TAHAPAN
+   SISTEM TAHAPAN
    ============================================================ */
 window.openSistemTahapan = function(cid){
   cid = cid || window.__viewClassId;
@@ -1327,7 +1305,7 @@ window.hapusDeadline = function(cid, sid){
 };
 
 /* ============================================================
-   22. KALKULASI NILAI
+   KALKULASI NILAI
    ============================================================ */
 function calcAvg(scores, rubric){
   if (!scores || !rubric) return 0;
@@ -1415,7 +1393,7 @@ function getFinalScore(cid, tid){
 }
 
 /* ============================================================
-   23. PENILAIAN GURU
+   PENILAIAN GURU
    ============================================================ */
 window.openPenilaianGuru = function(cid){
   cid = cid || window.__viewClassId;
@@ -1546,7 +1524,7 @@ window.simpanNilaiGuru = function(cid, tid, sid){
 };
 
 /* ============================================================
-   24. PENILAIAN SISWA
+   PENILAIAN SISWA
    ============================================================ */
 window.openPenilaianSiswa = function(){
   var u = window.currentUser;
@@ -1667,14 +1645,14 @@ window.simpanNilai = function(cid, tid, sid){
     data[u.studentId][sid] = scores;
     return fb.collection('evaluations').doc(docId).set(data, {merge:true});
   }).then(function(){
-    if (window.logActivity) window.logActivity('eval_submit', u.name + ' menilai ' + t.name, {classId:cid});
+    logActivity('eval_submit', u.name + ' menilai ' + t.name, {classId:cid});
     alert('Nilai tersimpan');
     window.closeModal();
   }).catch(function(err){ alert('Gagal: ' + err.message); });
 };
 
 /* ============================================================
-   25. NILAI SAYA
+   NILAI SAYA
    ============================================================ */
 window.openNilaiSaya = function(){
   var u = window.currentUser;
@@ -1720,7 +1698,7 @@ window.openNilaiSaya = function(){
 };
 
 /* ============================================================
-   26. REKAP NILAI + EXPORT
+   REKAP NILAI
    ============================================================ */
 window.openRekapNilai = function(cid){
   cid = cid || window.__viewClassId;
@@ -1806,14 +1784,7 @@ window.exportRekapNilai = function(cid){
 };
 
 /* ============================================================
-   END BAGIAN 1
-   ============================================================ */
-
-// Bagian 2 (absensi, checklist, tugas, struktur, kas, naskah, jadwal, activity, panduan, boot)
-// ada di pesan berikutnya — copy-paste TEPAT DI ATAS baris "})();"
-})();
-/* ============================================================
-   27. ABSENSI (Meeting)
+   ABSENSI
    ============================================================ */
 window.openAbsensiList = function(cid){
   cid = cid || window.currentUser.classId || window.__viewClassId;
@@ -1845,7 +1816,6 @@ window.openAbsensiList = function(cid){
   } else {
     meetings.forEach(function(m){
       var records = m.records || {};
-      var total = Object.keys(records).length;
       var hadir = 0;
       Object.values(records).forEach(function(v){ if (v === 'hadir') hadir++; });
       var totalStudents = (c.students || []).length;
@@ -1938,7 +1908,6 @@ window.openIsiAbsensi = function(mid){
     return;
   }
 
-  // Guru/admin
   var h2 = '<div class="alert alert-info">' + window.ico('info') + '<div><b>' + esc(m.title) + '</b></div></div>';
   h2 += '<div class="action-row" style="margin-bottom:12px;">' +
     '<button class="btn btn-sm" onclick="setAllAtt(\'' + mid + '\',\'hadir\')">Hadir Semua</button>' +
@@ -1979,7 +1948,7 @@ window.simpanAbsensiSiswa = function(mid){
   rec[window.currentUser.studentId] = sel.value;
   m.records = rec;
   fbSet('meetings', mid, {records: rec}).then(function(){
-    if (window.logActivity) window.logActivity('meeting_attend', window.currentUser.name + ' isi absensi: ' + sel.value, {classId: m.classId});
+    logActivity('meeting_attend', window.currentUser.name + ' isi absensi: ' + sel.value, {classId: m.classId});
     alert('Absensi tersimpan');
     window.closeModal();
   });
@@ -2038,7 +2007,7 @@ window.hapusMeeting = function(mid){
 };
 
 /* ============================================================
-   28. CHECKLIST PRIBADI
+   CHECKLIST PRIBADI
    ============================================================ */
 window.openChecklistSaya = function(){
   var u = window.currentUser;
@@ -2106,9 +2075,7 @@ window.toggleChecklist = function(id, done){
   if (!ch) return;
   ch.items = ch.items.map(function(x){
     return x.id === id ? Object.assign({}, x, {
-      done: done,
-      doneBy: done ? u.name : null,
-      doneAt: done ? Date.now() : null
+      done: done, doneBy: done ? u.name : null, doneAt: done ? Date.now() : null
     }) : x;
   });
   fbSet('checklists', u.classId, ch);
@@ -2139,7 +2106,7 @@ window.hapusSemuaChecklistPribadi = function(){
 };
 
 /* ============================================================
-   29. CHECKLIST TIM
+   CHECKLIST TIM
    ============================================================ */
 window.openChecklistTim = function(){
   var u = window.currentUser;
@@ -2224,16 +2191,14 @@ window.toggleChecklistTim = function(id, done){
   if (!ch) return;
   ch.items = ch.items.map(function(x){
     return x.id === id ? Object.assign({}, x, {
-      done: done,
-      doneBy: done ? u.name : null,
-      doneAt: done ? Date.now() : null
+      done: done, doneBy: done ? u.name : null, doneAt: done ? Date.now() : null
     }) : x;
   });
   fbSet('checklists', cid, ch);
 };
 
 /* ============================================================
-   30. CHECKLIST MANAGE (Guru)
+   CHECKLIST MANAGE
    ============================================================ */
 window.openChecklistManage = function(cid){
   cid = cid || window.__viewClassId;
@@ -2336,7 +2301,7 @@ window.hapusSemuaChecklistTim = function(cid){
 };
 
 /* ============================================================
-   31. BERI TUGAS
+   BERI TUGAS
    ============================================================ */
 window.openBeriTugas = function(cid){
   cid = cid || window.__viewClassId;
@@ -2375,21 +2340,24 @@ window.openBeriTugas = function(cid){
 };
 
 window.btSelAll = function(c){
-  document.querySelectorAll('.bt-cb').forEach(function(cb){ cb.checked = c; });
+  var cbs = document.querySelectorAll('.bt-cb');
+  for (var i = 0; i < cbs.length; i++) cbs[i].checked = c;
 };
 
 window.btSelRole = function(role){
-  document.querySelectorAll('.bt-cb').forEach(function(cb){
-    cb.checked = cb.getAttribute('data-role') === role;
-  });
+  var cbs = document.querySelectorAll('.bt-cb');
+  for (var i = 0; i < cbs.length; i++){
+    cbs[i].checked = cbs[i].getAttribute('data-role') === role;
+  }
 };
 
 window.btSelTeam = function(team){
-  document.querySelectorAll('.bt-cb').forEach(function(cb){
-    var role = cb.getAttribute('data-role') || '';
+  var cbs = document.querySelectorAll('.bt-cb');
+  for (var i = 0; i < cbs.length; i++){
+    var role = cbs[i].getAttribute('data-role') || '';
     var r = ROLES[role];
-    cb.checked = r && r.team === team;
-  });
+    cbs[i].checked = r && r.team === team;
+  }
 };
 
 window.kirimTugas = function(cid){
@@ -2399,7 +2367,8 @@ window.kirimTugas = function(cid){
   if (!title){ alert('Judul wajib diisi'); return; }
 
   var targets = [];
-  document.querySelectorAll('.bt-cb:checked').forEach(function(cb){ targets.push(cb.value); });
+  var cbs = document.querySelectorAll('.bt-cb:checked');
+  for (var i = 0; i < cbs.length; i++) targets.push(cbs[i].value);
   if (targets.length === 0){ alert('Pilih minimal 1 penerima'); return; }
 
   var u = window.currentUser;
@@ -2417,14 +2386,14 @@ window.kirimTugas = function(cid){
       createdAt: Date.now(), readBy: [], doneBy: []
     });
   })).then(function(){
-    if (window.logActivity) window.logActivity('task_create', u.name + ' beri tugas "' + title + '" ke ' + targets.length + ' siswa', {classId: cid});
+    logActivity('task_create', u.name + ' beri tugas "' + title + '" ke ' + targets.length + ' siswa', {classId: cid});
     alert('Tugas terkirim ke ' + targets.length + ' siswa!');
     window.closeModal();
   }).catch(function(err){ alert('Gagal: ' + err.message); });
 };
 
 /* ============================================================
-   32. STRUKTUR KERABAT KERJA
+   STRUKTUR KERABAT KERJA
    ============================================================ */
 window.openStrukturKerabat = function(cid){
   var u = window.currentUser;
@@ -2487,7 +2456,6 @@ window.openStrukturKerabat = function(cid){
     return;
   }
 
-  // Group by level
   var byLevel = {};
   students.forEach(function(s){
     var lv = (ROLES[s.role] && ROLES[s.role].level) || 99;
@@ -2612,7 +2580,7 @@ window.exportStrukturExcel = function(cid){
 };
 
 /* ============================================================
-   33. KAS KELAS
+   KAS KELAS
    ============================================================ */
 window.openKasManage = function(cid){
   cid = cid || window.__viewClassId;
@@ -2736,7 +2704,7 @@ window.kasUnpaid = function(cid, sid){
 };
 
 /* ============================================================
-   34. NASKAH
+   NASKAH
    ============================================================ */
 window.openNaskahView = function(cid){
   var u = window.currentUser;
@@ -2809,7 +2777,7 @@ window.hapusNaskah = function(cid, id){
 };
 
 /* ============================================================
-   35. JADWAL LATIHAN
+   JADWAL LATIHAN
    ============================================================ */
 window.openJadwalLatihan = function(cid){
   var u = window.currentUser;
@@ -2886,7 +2854,7 @@ window.hapusJadwal = function(cid, id){
 };
 
 /* ============================================================
-   36. BOOKING ALAT MUSIK
+   BOOKING
    ============================================================ */
 window.openBookingAlat = function(){
   var u = window.currentUser;
@@ -2992,7 +2960,7 @@ window.hapusBooking = function(id){
 };
 
 /* ============================================================
-   37. PEMINJAMAN BARANG
+   PEMINJAMAN
    ============================================================ */
 window.openPeminjamanBarang = function(cid){
   var u = window.currentUser;
@@ -3082,7 +3050,7 @@ window.hapusPinjam = function(id){
 };
 
 /* ============================================================
-   38. IMPORT EXCEL
+   IMPORT EXCEL
    ============================================================ */
 window.openImportExcel = function(cid){
   if (!cid){ alert('Pilih kelas dulu'); return; }
@@ -3164,7 +3132,7 @@ window.doImportExcel = function(cid){
 };
 
 /* ============================================================
-   39. BROADCAST & ADUAN
+   BROADCAST & ADUAN
    ============================================================ */
 window.openBroadcast = function(cid){
   window.openModal('Broadcast Pesan',
@@ -3248,7 +3216,7 @@ window.openAduanGuru = function(){
 };
 
 /* ============================================================
-   40. GURU CRUD (Admin)
+   GURU CRUD (Admin)
    ============================================================ */
 window.openTambahGuru = function(){
   window.openModal('Tambah Guru',
@@ -3280,7 +3248,7 @@ window.hapusGuru = function(email){
 };
 
 /* ============================================================
-   41. ACTIVITY LOG
+   ACTIVITY LOG
    ============================================================ */
 window.openActivityLog = function(){
   var u = window.currentUser;
@@ -3311,7 +3279,7 @@ window.openActivityLog = function(){
 };
 
 /* ============================================================
-   42. CHANGE PASSWORD
+   CHANGE PASSWORD
    ============================================================ */
 window.openChangePassword = function(){
   window.openModal('Ubah Password',
@@ -3360,7 +3328,7 @@ window.saveChangePassword = function(){
 };
 
 /* ============================================================
-   43. LUPA PASSWORD
+   LUPA PASSWORD
    ============================================================ */
 window.openForgotPassword = function(t){
   window.openModal('Lupa Password ' + (t === 'guru' ? 'Guru' : 'Siswa'),
@@ -3369,7 +3337,7 @@ window.openForgotPassword = function(t){
 };
 
 /* ============================================================
-   44. PANDUAN
+   PANDUAN
    ============================================================ */
 window.openPanduan = function(){
   var h = '';
@@ -3429,7 +3397,7 @@ window.openPanduan = function(){
 };
 
 /* ============================================================
-   45. MENU
+   MENU
    ============================================================ */
 window.openMainMenu = function(){
   var u = window.currentUser;
@@ -3478,7 +3446,7 @@ window.openMainMenu = function(){
 };
 
 /* ============================================================
-   46. SUBSCRIBE FIRESTORE
+   SUBSCRIBE FIRESTORE
    ============================================================ */
 function subscribe(){
   if (!fbReady) return;
@@ -3497,7 +3465,6 @@ function subscribe(){
     });
     console.log('[firestore] classes:', window.DB.classes.length);
 
-    // Update class dropdown di login siswa
     var sel = $('siswa-kelas');
     if (sel){
       var cur = sel.value;
@@ -3510,7 +3477,6 @@ function subscribe(){
       if (cur) sel.value = cur;
     }
 
-    // Refresh dashboard kalau login
     if (window.currentUser){
       var app = $('app-container');
       if (app && !app.classList.contains('hidden')){
@@ -3628,10 +3594,27 @@ function subscribe(){
 }
 
 /* ============================================================
-   47. BOOT
+   FORCE HIDE LOADING (safety)
+   ============================================================ */
+setTimeout(function(){
+  var ld = $('loading-screen');
+  if (ld && ld.style.display !== 'none'){
+    console.warn('[safety] Force hide loading');
+    ld.style.display = 'none';
+    if (!window.currentUser){
+      var l = $('login-screen');
+      if (l) l.classList.remove('hidden');
+    } else {
+      showApp();
+    }
+  }
+}, 5000);
+
+/* ============================================================
+   BOOT
    ============================================================ */
 function boot(){
-  console.log('[app.js] Boot v22 FINAL...');
+  console.log('[app.js] Boot v23 FINAL...');
 
   var savedTheme = localStorage.getItem('sppt_theme') || 'auto';
   window.setTheme(savedTheme);
@@ -3645,7 +3628,9 @@ function boot(){
 
   if (fbReady) subscribe();
 
-  var sess = getSession();
+  var sess = null;
+  try { var raw = localStorage.getItem('sppt_session'); sess = raw ? JSON.parse(raw) : null; } catch(e){}
+
   if (sess){
     try {
       window.currentUser = sess;
@@ -3682,6 +3667,6 @@ if (document.readyState === 'loading'){
   boot();
 }
 
-console.log('[app.js] v22 FINAL loaded — semua fitur lengkap');
+console.log('[app.js] v23 FINAL loaded — semua fitur lengkap');
 
 })();
