@@ -1073,19 +1073,40 @@ function openGuruMenu(){
 
 function openSiswaMenu(){
   var role = window.currentUser.role;
-  var items = [];
-  // Menu dasar untuk semua siswa
-  items.push({i:'checkSquare', l:'Checklist Saya', a:'openChecklistPribadi'});
-  items.push({i:'users', l:'Checklist Tim', a:'openChecklistTim'});
-  items.push({i:'edit', l:'Beri Nilai Rekan', a:'openPenilaianSiswaDashboard'});
-  items.push({i:'award', l:'Kerabat Kerja', a:'openStrukturKerabatKerja'});
-  items.push({i:'info', l:'Informasi Umum', a:'openInformasiUmum'});
-  items.push({i:'calendar', l:'Jadwal & Timeline', a:'openJadwalSiswa'});
-  // Menu khusus per role
-  if (role === 'pimpinan_produksi'){
-    items.push({i:'gear', l:'Kelola Tahapan', a:'openSistemTahapan'});
+  var items = [
+    {i:'checkSquare', l:'Checklist Saya', a:'openChecklistPribadi'},
+    {i:'users',       l:'Checklist Tim', a:'openChecklistTim'},
+    {i:'edit',        l:'Beri Nilai Rekan', a:'openPenilaianSiswaDashboard'},
+    {i:'award',       l:'Kerabat Kerja', a:'openStrukturKerabatKerja'},
+    {i:'info',        l:'Informasi Umum', a:'openInformasiUmum'},
+    {i:'calendar',    l:'Absensi', a:'openMeetingListSiswa'}
+  ];
+  // Khusus peran
+  if (role === 'sutradara' || role === 'asisten_sutradara'){
+    items.push({i:'book', l:'Naskah', a:'openNaskahList'});
+  }
+  if (role === 'sekretaris' || role === 'pimpinan_produksi'){
+    items.push({i:'calendar', l:'Buat Absen Rapat', a:'openMeetingList'});
+  }
+  if (['sutradara','asisten_sutradara'].indexOf(role) >= 0){
+    items.push({i:'calendar', l:'Buat Absen Latihan', a:'openMeetingList'});
+  }
+  if (['pimpinan_produksi','koor_musik','sutradara','koor_perlengkapan'].indexOf(role) >= 0){
     items.push({i:'briefcase', l:'Booking Alat Musik', a:'openBookingAlat'});
   }
+  if (['asisten_sutradara','koor_musik','koor_perlengkapan','pimpinan_produksi','sutradara','sekretaris'].indexOf(role) >= 0){
+    items.push({i:'messageCircle', l:'Koordinasi Antar Kelas', a:'openKoordinasi'});
+  }
+  items.push({i:'key', l:'Ubah Password', a:'openChangePassword'});
+  items.push({i:'out', l:'Keluar', a:'logout'});
+
+  var h = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  items.forEach(function(it){
+    h += '<button class="btn" style="justify-content:flex-start;text-align:left;" onclick="closeModal();window.'+it.a+' && window.'+it.a+'()">'+ic(it.i)+' '+it.l+'</button>';
+  });
+  h += '</div>';
+  openModal('Menu Siswa', h);
+}
   if (role === 'sutradara' || role === 'asisten_sutradara'){
     items.push({i:'book', l:'Naskah', a:'openNaskahList'});
     items.push({i:'calendar', l:'Buat Absen Latihan', a:'openBuatMeetingLatihan'});
@@ -1315,3 +1336,6 @@ setTimeout(window.__forceHideLoading, 3500);
 
 console.log('[app.js] v13.0 M1 loaded');
 })();
+window.openMeetingListSiswa = function(){
+  if (window.openMeetingList) window.openMeetingList();
+};
