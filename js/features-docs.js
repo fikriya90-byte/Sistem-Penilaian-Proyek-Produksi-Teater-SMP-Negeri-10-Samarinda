@@ -649,20 +649,32 @@ function buildCoverHtml(cid, title, subtitle){
   var kerabatNama = getKerabatName(cid);
   var className = c ? c.name : '-';
 
+  // Note: html-docx-js tidak bisa embed gambar eksternal.
+  // Logo akan muncul sebagai placeholder teks. Siswa bisa tempel logo manual di Word.
   return '' +
     '<div style="text-align:center;padding:40pt 0 20pt 0;page-break-after:always;">' +
-      '<table style="width:100%;margin-bottom:30pt;"><tr>' +
-        '<td style="text-align:center;width:33%;"><img src="'+LOGO_MAPEL+'" style="height:80pt;" onerror="this.style.display=\'none\'"></td>' +
-        '<td style="text-align:center;width:33%;"><img src="'+LOGO_SEKOLAH+'" style="height:80pt;" onerror="this.style.display=\'none\'"></td>' +
-        (kerabatLogo ? '<td style="text-align:center;width:33%;"><img src="'+kerabatLogo+'" style="height:80pt;" onerror="this.style.display=\'none\'"></td>' : '<td style="width:33%;"></td>') +
+      // Placeholder logo (bukan img src eksternal)
+      '<table style="width:100%;margin-bottom:30pt;border-collapse:collapse;"><tr>' +
+        '<td style="text-align:center;width:33%;font-size:11pt;color:#666;padding:20pt 10pt;border:1pt dashed #ccc;">' +
+          '[LOGO<br>MAPEL SENI BUDAYA]' +
+        '</td>' +
+        '<td style="text-align:center;width:33%;font-size:11pt;color:#666;padding:20pt 10pt;border:1pt dashed #ccc;">' +
+          '[LOGO<br>SMP NEGERI 10 SAMARINDA]' +
+        '</td>' +
+        '<td style="text-align:center;width:33%;font-size:11pt;color:#666;padding:20pt 10pt;border:1pt dashed #ccc;">' +
+          '[LOGO<br>' + esc(kerabatNama).toUpperCase() + ']' +
+        '</td>' +
       '</tr></table>' +
-      '<h1 style="font-size:24pt;color:#1e40af;margin:20pt 0 10pt 0;font-family:Calibri;">'+esc(title)+'</h1>' +
-      (subtitle ? '<h2 style="font-size:16pt;color:#2563eb;margin:10pt 0 30pt 0;font-family:Calibri;">'+esc(subtitle)+'</h2>' : '<div style="margin:30pt 0;"></div>') +
+      '<h1 style="font-size:24pt;color:#1e40af;margin:20pt 0 10pt 0;font-family:Calibri;">' + esc(title) + '</h1>' +
+      (subtitle ? '<h2 style="font-size:16pt;color:#2563eb;margin:10pt 0 30pt 0;font-family:Calibri;">' + esc(subtitle) + '</h2>' : '<div style="margin:30pt 0;"></div>') +
       '<hr style="border:none;border-top:2pt solid #2563eb;width:60%;margin:20pt auto;">' +
-      '<p style="font-size:14pt;font-weight:bold;margin:30pt 0 10pt 0;">'+esc(kerabatNama)+'</p>' +
-      '<p style="font-size:12pt;margin:10pt 0;">Kelas '+esc(className)+'</p>' +
+      '<p style="font-size:14pt;font-weight:bold;margin:30pt 0 10pt 0;">' + esc(kerabatNama) + '</p>' +
+      '<p style="font-size:12pt;margin:10pt 0;">Kelas ' + esc(className) + '</p>' +
       '<p style="font-size:12pt;margin:10pt 0;">SMP Negeri 10 Samarinda</p>' +
       '<p style="font-size:12pt;margin:30pt 0;">Tahun Ajaran 2025/2026</p>' +
+      '<p style="font-size:9pt;color:#999;margin-top:40pt;font-style:italic;">' +
+        '(Ganti placeholder logo di atas dengan logo asli setelah dokumen dibuka di Word)' +
+      '</p>' +
     '</div>';
 }
 
