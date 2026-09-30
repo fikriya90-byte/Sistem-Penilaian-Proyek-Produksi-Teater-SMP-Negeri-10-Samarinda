@@ -1258,4 +1258,172 @@ window.injectSlideTimelines = function(){
   h += '</div>';
 
   /* Slide 3: KONTEN */
-  h += '<div class="carousel-slide"
+  h += '<div class="carousel-slide" style="flex:0 0 100%;scroll-snap-align:start;min-width:100%;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-sizing:border-box;">';
+  h += '<div style="font-weight:800;font-size:13px;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:6px;">'+ic('image','sm')+' KALENDER KONTEN</div>';
+  if (!kontenItems.length) h += '<div class="empty-state">'+ic('image',40)+'<p>Belum ada konten.</p></div>';
+  else {
+    kontenItems.sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')); });
+    kontenItems.slice(0,6).forEach(function(it){
+      h += '<div style="padding:10px;background:var(--surface);border-radius:8px;margin-bottom:6px;border-left:3px solid var(--success);">';
+      h += '<div style="font-weight:700;font-size:12.5px;">'+esc(it.title)+'</div>';
+      h += '<div style="font-size:11px;color:var(--text-muted);">'+esc(it.platform||'-')+' · '+fmtDateShort(it.date)+'</div></div>';
+    });
+  }
+  h += '</div>';
+
+  h += '</div>';
+  h += '<div style="display:flex;justify-content:center;gap:6px;margin-top:12px;">';
+  for (var i=0;i<4;i++){
+    h += '<button class="carousel-dot active" data-dot="'+i+'" style="width:8px;height:8px;border-radius:50%;background:'+(i===0?'var(--primary)':'var(--border-strong)')+';border:none;cursor:pointer;padding:0;"></button>';
+  }
+  h += '</div></div>';
+
+  var wrap = document.createElement('div');
+  wrap.innerHTML = h;
+  var el = wrap.firstElementChild;
+  var ref = mc.querySelector('.extras-toolbar-top');
+  if (ref && ref.parentNode) ref.parentNode.insertBefore(el, ref.nextSibling);
+  else mc.insertBefore(el, mc.firstChild);
+
+  setTimeout(__setupCarouselM6, 100);
+  setTimeout(__setupCarouselM6, 500);
+};
+
+function __setupCarouselM6(){
+  var track = document.getElementById('fx-car-track');
+  if (!track) return;
+  var tabs = document.querySelectorAll('.carousel-tab');
+  var dots = document.querySelectorAll('.carousel-dot');
+  function goTo(i){ track.scrollTo({left: track.clientWidth * i, behavior:'smooth'}); }
+  tabs.forEach(function(t){ t.onclick = function(){ goTo(parseInt(t.dataset.tab,10)); }; });
+  dots.forEach(function(d){ d.onclick = function(){ goTo(parseInt(d.dataset.dot,10)); }; });
+  var timer = null;
+  track.onscroll = function(){
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(function(){
+      var idx = Math.round(track.scrollLeft / track.clientWidth);
+      tabs.forEach(function(t, i){
+        t.style.background = i === idx ? 'var(--card)' : 'none';
+        t.style.color = i === idx ? 'var(--primary)' : 'var(--text-muted)';
+      });
+      dots.forEach(function(d, i){
+        d.style.background = i === idx ? 'var(--primary)' : 'var(--border-strong)';
+      });
+    }, 60);
+  };
+}
+
+/* P.4 Hapus duplikat Lupa Password */
+setTimeout(function(){
+  ['form-login-guru','form-login-siswa'].forEach(function(fid){
+    var f = document.getElementById(fid);
+    if (!f) return;
+    var divs = f.querySelectorAll('.divider-text');
+    if (divs.length && /lupa password/i.test(divs[0].textContent)){
+      divs[0].remove();
+    }
+  });
+}, 300);
+
+/* ============================================================
+   Q. v6.0 — Foto profil, kunci peran
+   ============================================================ */
+
+/* Q.1 Foto profil siswa */
+window.openUploadFotoProfil = function(){
+  if (!isSiswa()){ alert('Hanya siswa'); return; }
+  var me = window.currentUser || {};
+  var current = me.foto || '';
+  var h = '<div class="alert alert-info">'+ic('user')+
+    '<div>Foto profil tampil di struktur Kerabat Kerja.<br>Maks <b>200 KB</b>, format JPG/PNG.</div></div>';
+  if (current) h += '<div style="text-align:center;margin-bottom:14px;"><img src="'+esc(current)+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--border);"></div>';
+  h += '<div class="form-group"><label>Pilih Foto</label>'+
+    '<input type="file" id="fx-foto-input" accept="image/*" style="padding:8px;width:100%;"></div>'+
+    '<button class="btn btn-primary btn-block" data-fx="fxSaveFoto">'+ic('save')+' Simpan Foto</button>';
+  if (current) h += '<button class="btn btn-sm btn-danger btn-block" style="margin-top:8px;" data-fx="fxHapusFoto">'+ic('trash')+' Hapus Foto</button>';
+  openModal('Foto Profil', h);
+};
+
+window.fxSaveFoto = function(){
+  var el = document.getElementById('fx-foto-input');
+  if (!el || !el.files || !el.files[0]){ alert('Pilih foto'); return; }
+  var f = el.files[0];
+  if (f.size > 200*1024){ alert('Foto terlalu besar (maks 200 KB)'); return; }
+  var me = window.currentUser || {};
+  var cid = uCid(); if (!cid){ alert('Kelas tidak ditemukan'); return; }
+  var c = findClass(cid); if (!c) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var dataUrl = e.target.result;
+    var students = (c.students||[]).map(function(s){
+      if (s.id !== me.studentId) return s;
+      return Object.assign({}, s, {foto: dataUrl});
+    });
+    window.fbSet('classes', cid, Object.assign({}, c, {students: students})).then(function(){
+      me.foto = dataUrl;
+      if (window.saveSession) window.saveSession();
+      alert('Foto profil tersimpan!');
+      closeModal();
+      if (typeof window.renderSiswaDash === 'function') window.renderSiswaDash();
+    }).catch(function(err){ alert('Gagal: '+err.message); });
+  };
+  reader.readAsDataURL(f);
+};
+
+window.fxHapusFoto = function(){
+  if (!confirm('Hapus foto profil?')) return;
+  var me = window.currentUser || {};
+  var cid = uCid();
+  var c = findClass(cid); if (!c) return;
+  var students = (c.students||[]).map(function(s){
+    if (s.id !== me.studentId) return s;
+    var x = Object.assign({}, s); delete x.foto; return x;
+  });
+  window.fbSet('classes', cid, Object.assign({}, c, {students: students})).then(function(){
+    delete me.foto;
+    if (window.saveSession) window.saveSession();
+    alert('Foto dihapus');
+    closeModal();
+    if (typeof window.renderSiswaDash === 'function') window.renderSiswaDash();
+  });
+};
+
+/* Q.2 Kunci peran saat register — default pemain */
+(function lockRole(){
+  var orig = window.registerSiswa;
+  if (typeof orig !== 'function') return;
+  window.registerSiswa = function(){
+    var el = document.getElementById('daftar-role');
+    if (el && (!el.value || el.value.length === 0)){
+      el.value = 'pemain';
+    }
+    return orig.apply(this, arguments);
+  };
+})();
+
+/* Q.3 Quick action Foto Profil di toolbar */
+(function injectFotoBtn(){
+  var orig = window.renderSiswaDash;
+  if (typeof orig !== 'function') return;
+  window.renderSiswaDash = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(function(){
+      var tb = document.querySelector('.extras-toolbar-top');
+      if (!tb || tb.querySelector('[data-fx-menu="openUploadFotoProfil"]')) return;
+      var btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.setAttribute('data-fx-menu', 'openUploadFotoProfil');
+      btn.innerHTML = ic('user','sm') + ' Foto Profil';
+      tb.appendChild(btn);
+    }, 400);
+    return ret;
+  };
+})();
+
+console.log('[features-fix] v6.0 FINAL loaded');
+console.log('  → Foto profil siswa (max 200KB)');
+console.log('  → Peran dikunci (default pemain)');
+console.log('  → Master Timeline & Pengumuman Produksi');
+console.log('  → Menu grid sederhana');
+
+})();
