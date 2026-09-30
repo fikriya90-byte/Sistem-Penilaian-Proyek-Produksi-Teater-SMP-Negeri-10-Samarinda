@@ -1465,5 +1465,915 @@ console.log('  → Foto profil siswa (max 200KB)');
 console.log('  → Peran dikunci (default pemain)');
 console.log('  → Master Timeline & Pengumuman Produksi');
 console.log('  → Menu grid sederhana');
+/* ============================================================
+   R. v7.0 AUDIT FIX — Semua Bug + Fitur Merata
+   ============================================================ */
 
+/* ============================================================
+   R.1 — SEED DEFAULT TEACHERS (Guru Bawaan)
+   ============================================================ */
+(function seedDefaultTeachers(){
+  var DEFAULT_TEACHERS = [{
+    name: 'Fikri Yassaar Arrazaq, S.Sn.',
+    email: 'fikri.yassaar15@guru.smp.belajar.id',
+    password: '#Smpn10smd',
+    phone: ''
+  }, {
+    name: 'Admin Sistem',
+    email: 'admin@sppt.local',
+    password: '#Smpn10smd',
+    phone: ''
+  }];
+
+  function ensureSeeded(){
+    if (!window.fbReady || !window.fb) return;
+    var list = window.DB.teachers || [];
+    if (list.length === 0){
+      console.log('[seed] Guru bawaan belum ada, seeding...');
+      DEFAULT_TEACHERS.forEach(function(t){
+        window.fbSet('teachers', t.email, t);
+      });
+      return;
+    }
+    // Cek spesifik guru utama ada
+    var hasMain = list.some(function(t){
+      return String(t.email||'').toLowerCase() === 'fikri.yassaar15@guru.smp.belajar.id';
+    });
+    if (!hasMain){
+      console.log('[seed] Guru utama hilang, restore...');
+      window.fbSet('teachers', DEFAULT_TEACHERS[0].email, DEFAULT_TEACHERS[0]);
+    }
+  }
+
+  // Cek beberapa kali setelah Firebase ready
+  setTimeout(ensureSeeded, 3000);
+  setTimeout(ensureSeeded, 6000);
+  setTimeout(ensureSeeded, 12000);
+})();
+
+/* ============================================================
+   R.2 — ALIAS TAMBAH GURU
+   ============================================================ */
+if (typeof window.openTambahGuru !== 'function'){
+  window.openTambahGuru = function(){
+    if (typeof window.openAddTeacher === 'function') return window.openAddTeacher();
+    if (typeof window.openAddTeacherModal === 'function') return window.openAddTeacherModal();
+    alert('Fitur tambah guru belum siap');
+  };
+}
+window.openTambahGuruDariAdmin = function(){
+  openModal('Tambah Guru Baru',
+    '<div class="alert alert-info">' + ic('info') + '<div>Isi data guru. Email harus unik.</div></div>' +
+    '<div class="form-group"><label>Nama Lengkap</label><input id="fx-tg-name" placeholder="Nama Guru, S.Pd."></div>' +
+    '<div class="form-group"><label>Email</label><input type="email" id="fx-tg-email" placeholder="nama@guru.smp.belajar.id"></div>' +
+    '<div class="form-group"><label>No. WhatsApp</label><input type="tel" id="fx-tg-phone" placeholder="08123456789"></div>' +
+    '<div class="form-group pw-toggle"><label>Password</label>' +
+      '<input type="password" id="fx-tg-pw" value="#Smpn10smd">' +
+      '<button class="toggle-btn" type="button" onclick="togglePw(\'fx-tg-pw\',this)">' +
+      '<span data-ico="eye" data-size="16"></span></button></div>' +
+    '<button class="btn btn-primary btn-block" data-fx="fxSimpanGuruBaru">' + ic('save') + ' Simpan</button>');
+  if (window.hydrateIcons) window.hydrateIcons();
+};
+window.fxSimpanGuruBaru = function(){
+  var n = (document.getElementById('fx-tg-name').value||'').trim();
+  var e = (document.getElementById('fx-tg-email').value||'').trim().toLowerCase();
+  var ph = (document.getElementById('fx-tg-phone').value||'').replace(/\D/g,'');
+  var pw = (document.getElementById('fx-tg-pw').value||'').trim();
+  if (!n || !e || !pw){ alert('Lengkapi nama, email, password'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){ alert('Email tidak valid'); return; }
+  if (pw.length < 6){ alert('Password minimal 6'); return; }
+  if ((window.DB.teachers||[]).some(function(t){
+    return String(t.email||'').toLowerCase() === e;
+  })){ alert('Email sudah terdaftar'); return; }
+  window.fbSet('teachers', e, {name:n, email:e, phone:ph, password:pw}).then(function(){
+    alert('Guru berhasil ditambahkan!');
+    closeModal();
+  }).catch(function(err){ alert('Gagal: ' + err.message); });
+};
+
+/* ============================================================
+   R.3 — MENU ADMIN DIPERLUAS (Backup, Analitik, Rapor, Tambah Guru)
+   ============================================================ */
+window.openAdminMenu = function(){
+  var h = '<div class="fx-menu-scroll">';
+  h += '<div class="alert alert-info" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">' +
+    ic('shield','lg') + '<div style="flex:1;"><b>' + esc(u().name||'') + '</b><br>' +
+    '<small style="color:var(--text-muted);">Administrator</small></div></div>';
+
+  function tile(items){
+    var o = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+    items.forEach(function(it){
+      o += '<button class="fx-mi-tile" data-fx-menu="' + it.a + '">' +
+        '<div class="fx-mi">' + ic(it.i, 20) + '</div>' +
+        '<div class="fx-ml">' + esc(it.l) + '</div></button>';
+    });
+    return o + '</div>';
+  }
+
+  h += '<div class="fx-menu-section">' + ic('users','sm') + ' Manajemen</div>';
+  h += tile([
+    { i:'personPlus', l:'Tambah Guru',   a:'openTambahGuruDariAdmin' },
+    { i:'users',      l:'Daftar Guru',   a:'openDaftarGuruAdmin' },
+    { i:'school',     l:'Semua Kelas',   a:'openDaftarKelasAdmin' },
+    { i:'activity',   l:'Log Aktivitas', a:'openActivityLog' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('chart','sm') + ' Analitik Global</div>';
+  h += tile([
+    { i:'chart',    l:'Statistik',  a:'openStatistikGlobal' },
+    { i:'target',   l:'Analitik',   a:'openAnalitikGlobal' },
+    { i:'fileText', l:'Rapor Semua',a:'openPrintRaporSemua' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('layers','sm') + ' Server & Data</div>';
+  h += tile([
+    { i:'activity', l:'Status Server', a:'openStatusFirebase' },
+    { i:'download', l:'Backup',         a:'openBackupRestore' },
+    { i:'upload',   l:'Restore',        a:'openBackupRestore' },
+    { i:'refresh',  l:'Sync Backup',    a:'fxSyncPrimToBack' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('messageCircle','sm') + ' Komunikasi</div>';
+  h += tile([
+    { i:'messageCircle', l:'Log WA',   a:'openLogWA' },
+    { i:'warning',       l:'Aduan',    a:'openAduanGuru' },
+    { i:'bell',          l:'Pesan',    a:'openDashboardPesan' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('gear','sm') + ' Akun</div>';
+  h += tile([
+    { i:'key', l:'Password', a:'openChangePassword' },
+    { i:'out', l:'Keluar',   a:'logout' }
+  ]);
+
+  h += '</div>';
+  openModal('Menu Admin', h);
+  if (window.hydrateIcons) window.hydrateIcons();
+};
+
+/* Daftar Guru (Admin) */
+window.openDaftarGuruAdmin = function(){
+  var list = window.DB.teachers || [];
+  var h = '<div class="alert alert-info">' + ic('users') +
+    '<div><b>Daftar Guru</b> — ' + list.length + ' akun</div></div>';
+  if (!list.length){
+    h += '<div class="empty-state">' + ic('users',40) + '<p>Belum ada guru</p></div>';
+  } else {
+    list.forEach(function(t){
+      h += '<div class="teacher-list-item">' +
+        '<div class="info">' + ic('user','lg') + '<div>' +
+          '<strong>' + esc(t.name||'-') + '</strong>' +
+          '<small>' + esc(t.email||'-') + ' · ' + esc(t.phone||'tanpa WA') + '</small>' +
+        '</div></div>' +
+        '<div class="action-row">' +
+          '<button class="btn btn-sm" data-fx="fxEditGuru" data-arg="' + esc(t.email) + '">' + ic('edit','sm') + '</button>' +
+          '<button class="btn btn-sm btn-danger" data-fx="fxHapusGuru" data-arg="' + esc(t.email) + '">' + ic('trash','sm') + '</button>' +
+        '</div></div>';
+    });
+  }
+  openModal('Daftar Guru', h);
+  if (window.hydrateIcons) window.hydrateIcons();
+};
+
+window.fxEditGuru = function(email){
+  var t = (window.DB.teachers||[]).find(function(x){
+    return String(x.email||'').toLowerCase() === String(email).toLowerCase();
+  });
+  if (!t){ alert('Guru tidak ditemukan'); return; }
+  openModal('Edit Guru',
+    '<div class="form-group"><label>Nama</label><input id="fx-eg-name" value="' + esc(t.name||'') + '"></div>' +
+    '<div class="form-group"><label>Email</label><input type="email" id="fx-eg-email" value="' + esc(t.email||'') + '"></div>' +
+    '<div class="form-group"><label>No. WA</label><input type="tel" id="fx-eg-phone" value="' + esc(t.phone||'') + '"></div>' +
+    '<div class="form-group"><label>Password (kosongkan jika tidak diubah)</label>' +
+      '<input type="text" id="fx-eg-pw" placeholder="Kosongkan jika tidak diubah"></div>' +
+    '<button class="btn btn-primary btn-block" data-fx="fxUpdateGuru" data-arg="' + esc(email) + '">' + ic('save') + ' Simpan</button>');
+};
+
+window.fxUpdateGuru = function(oldEmail){
+  var n = (document.getElementById('fx-eg-name').value||'').trim();
+  var e = (document.getElementById('fx-eg-email').value||'').trim().toLowerCase();
+  var ph = (document.getElementById('fx-eg-phone').value||'').replace(/\D/g,'');
+  var pw = (document.getElementById('fx-eg-pw').value||'').trim();
+  if (!n || !e){ alert('Nama & email wajib'); return; }
+  var t = (window.DB.teachers||[]).find(function(x){
+    return String(x.email||'').toLowerCase() === String(oldEmail).toLowerCase();
+  });
+  if (!t) return;
+  var upd = Object.assign({}, t, {name:n, email:e, phone:ph});
+  delete upd.id;
+  if (pw) upd.password = pw;
+  var chain = Promise.resolve();
+  if (oldEmail.toLowerCase() !== e.toLowerCase()){
+    chain = window.fbDel('teachers', oldEmail);
+  }
+  chain.then(function(){ return window.fbSet('teachers', e, upd); })
+    .then(function(){ alert('Diperbarui!'); closeModal(); })
+    .catch(function(err){ alert('Gagal: ' + err.message); });
+};
+
+window.fxHapusGuru = function(email){
+  if (!confirm('Hapus guru ' + email + '?')) return;
+  window.fbDel('teachers', email).then(function(){
+    alert('Guru dihapus');
+    closeModal();
+    setTimeout(window.openDaftarGuruAdmin, 200);
+  });
+};
+
+/* Daftar Kelas (Admin) */
+window.openDaftarKelasAdmin = function(){
+  var list = window.DB.classes || [];
+  var h = '<div class="alert alert-info">' + ic('school') +
+    '<div><b>Semua Kelas</b> — ' + list.length + ' kelas</div></div>';
+  if (!list.length){
+    h += '<div class="empty-state">' + ic('school',40) + '<p>Belum ada kelas</p></div>';
+  } else {
+    h += '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Kelas</th><th>Kode</th><th>Guru</th><th>Siswa</th><th></th>' +
+      '</tr></thead><tbody>';
+    list.forEach(function(c){
+      h += '<tr>' +
+        '<td><b>' + esc(c.name) + '</b></td>' +
+        '<td><code>' + esc(c.code||'-') + '</code></td>' +
+        '<td style="font-size:11.5px;">' + esc(c.teacherEmail||'-') + '</td>' +
+        '<td>' + ((c.students||[]).length) + '</td>' +
+        '<td><button class="btn btn-sm" data-fx="fxLihatKelasAdmin" data-arg="' + c.id + '">' + ic('eye','sm') + '</button></td>' +
+        '</tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  openModal('Semua Kelas', h);
+};
+
+window.fxLihatKelasAdmin = function(cid){
+  var c = (window.DB.classes||[]).find(function(x){ return x.id === cid; });
+  if (!c) return;
+  window.__currentViewClassId = cid;
+  if (typeof window.viewClass === 'function') return window.viewClass(cid);
+  alert('Detail kelas ' + c.name);
+};
+
+/* Statistik Global */
+window.openStatistikGlobal = function(){
+  var classes = window.DB.classes || [];
+  var teachers = window.DB.teachers || [];
+  var totalStudents = 0;
+  classes.forEach(function(c){ totalStudents += (c.students||[]).length; });
+  var notifs = (window.DB.notifications||[]).length;
+
+  var h = '<div class="alert alert-info">' + ic('chart') + '<div><b>Statistik Global</b></div></div>';
+  h += '<div class="grid">' +
+    '<div class="card" style="border-left:4px solid var(--primary);"><div style="font-size:11.5px;">Total Kelas</div><div style="font-size:24px;font-weight:800;color:var(--primary);">' + classes.length + '</div></div>' +
+    '<div class="card" style="border-left:4px solid var(--success);"><div style="font-size:11.5px;">Total Siswa</div><div style="font-size:24px;font-weight:800;color:var(--success);">' + totalStudents + '</div></div>' +
+    '<div class="card" style="border-left:4px solid var(--info);"><div style="font-size:11.5px;">Total Guru</div><div style="font-size:24px;font-weight:800;color:var(--info);">' + teachers.length + '</div></div>' +
+    '<div class="card" style="border-left:4px solid var(--warning);"><div style="font-size:11.5px;">Notifikasi</div><div style="font-size:24px;font-weight:800;color:var(--warning);">' + notifs + '</div></div>' +
+    '</div>';
+  openModal('Statistik Global', h);
+};
+
+window.openAnalitikGlobal = function(){
+  alert('Pilih kelas spesifik dari "Semua Kelas" untuk melihat analitik detail.');
+  closeModal();
+  setTimeout(window.openDaftarKelasAdmin, 200);
+};
+
+window.openPrintRaporSemua = function(){
+  alert('Pilih kelas spesifik dari "Semua Kelas" untuk print rapor.');
+  closeModal();
+  setTimeout(window.openDaftarKelasAdmin, 200);
+};
+
+/* ============================================================
+   R.4 — FIX MATRIKS EVALUATOR (Siapa menilai siapa)
+   ============================================================ */
+window.canRoleEvaluate = function(evalRole, targetRole){
+  if (evalRole === 'guru' || evalRole === 'admin') return true;
+
+  // Pimpinan Produksi dinilai SEMUA kecuali dirinya sendiri
+  if (targetRole === 'pimpinan_produksi') return true;
+
+  // Sutradara dinilai oleh pimpro, astrada, koordinator artistik, pemain, guru
+  if (targetRole === 'sutradara'){
+    return ['pimpinan_produksi','asisten_sutradara','koor_panggung','koor_musik','koor_busana','koor_rias','koor_cahaya','pemain'].indexOf(evalRole) >= 0;
+  }
+
+  // Asisten sutradara dinilai oleh sutradara & pimpro
+  if (targetRole === 'asisten_sutradara'){
+    return ['sutradara','pimpinan_produksi'].indexOf(evalRole) >= 0;
+  }
+
+  // Sekretaris & Bendahara dinilai oleh pimpro
+  if (targetRole === 'sekretaris' || targetRole === 'bendahara'){
+    return evalRole === 'pimpinan_produksi';
+  }
+
+  // Koor dinilai oleh pimpro, sutradara, astrada, dan anggotanya
+  if (targetRole.indexOf('koor_') === 0){
+    var base = targetRole.substring(5);
+    return ['pimpinan_produksi','sutradara','asisten_sutradara','anggota_' + base].indexOf(evalRole) >= 0;
+  }
+
+  // Anggota dinilai oleh koor pasangannya, sesama anggota, astrada
+  if (targetRole.indexOf('anggota_') === 0){
+    var base2 = targetRole.substring(8);
+    return ['koor_' + base2, 'anggota_' + base2, 'asisten_sutradara'].indexOf(evalRole) >= 0;
+  }
+
+  // Pemain dinilai oleh sutradara, astrada, pimpro, sesama pemain
+  if (targetRole === 'pemain'){
+    return ['sutradara','asisten_sutradara','pimpinan_produksi','pemain'].indexOf(evalRole) >= 0;
+  }
+
+  return false;
+};
+
+window.canGuruEvaluate = function(targetRole){
+  return targetRole === 'pimpinan_produksi' || targetRole === 'sutradara';
+};
+
+/* ============================================================
+   R.5 — BERI TUGAS CEPAT (Deadline Sederhana)
+   ============================================================ */
+window.openBeriTugasCepat = function(){
+  var cid = uCid(); if (!cid) return;
+  var c = findClass(cid); if (!c) return;
+  var role = uRole();
+  var canSend = isGuru() || ['pimpinan_produksi','sutradara','asisten_sutradara'].indexOf(role) >= 0 || role.indexOf('koor_') === 0;
+  if (!canSend){ alert('Tidak punya akses'); return; }
+
+  var students = (c.students||[]).filter(function(s){
+    if (s.id === uSid()) return false;
+    if (isGuru() || role === 'pimpinan_produksi' || role === 'sutradara') return true;
+    var peers = window.getRolePeerRoles ? window.getRolePeerRoles(role) : [role];
+    return peers.indexOf(s.role) >= 0;
+  });
+  if (!students.length){ alert('Tidak ada penerima'); return; }
+
+  var h = '';
+  h += '<div class="alert alert-info">' + ic('send') +
+    '<div><b>Kirim Tugas</b><br>Isi 1 formulir, langsung kirim ke semua penerima.</div></div>';
+
+  h += '<div class="form-group"><label>Judul</label>' +
+    '<input id="fx-bt-title" maxlength="80" placeholder="Contoh: Setor hafalan adegan 1"></div>';
+  h += '<div class="form-group"><label>Deskripsi (opsional)</label>' +
+    '<textarea id="fx-bt-desc" rows="2" maxlength="300"></textarea></div>';
+  h += '<div class="form-group"><label>Deadline (opsional)</label>' +
+    '<input type="date" id="fx-bt-deadline" value="' + new Date(Date.now() + 7*86400000).toISOString().split('T')[0] + '"></div>';
+  h += '<div class="form-group"><label>Jam Deadline</label>' +
+    '<input type="time" id="fx-bt-time" value="23:59"></div>';
+
+  h += '<div class="form-group"><label>Penerima</label>' +
+    '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">' +
+    '<button class="btn btn-sm" data-fx="fxBtSelectAll">Pilih Semua</button>' +
+    '<button class="btn btn-sm" data-fx="fxBtSelectNone">Kosongkan</button>' +
+    '</div>' +
+    '<div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;background:var(--surface);">';
+  students.forEach(function(s){
+    h += '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--card);border-radius:6px;margin-bottom:3px;cursor:pointer;font-size:12.5px;">' +
+      '<input type="checkbox" class="fx-bt-cb" value="' + s.id + '" checked>' +
+      '<span style="flex:1;font-weight:600;">' + esc(s.name) + '</span>' +
+      '<span style="font-size:10.5px;color:var(--text-muted);">' + esc(roleLabel(s.role)) + '</span>' +
+      '</label>';
+  });
+  h += '</div></div>';
+
+  h += '<button class="btn btn-primary btn-block btn-lg" data-fx="fxKirimTugasCepat" data-arg="' + cid + '">' +
+    ic('send') + ' Kirim Tugas</button>';
+
+  openModal('Kirim Tugas', h);
+  if (window.hydrateIcons) window.hydrateIcons();
+};
+
+window.fxBtSelectAll = function(){
+  document.querySelectorAll('.fx-bt-cb').forEach(function(cb){ cb.checked = true; });
+};
+window.fxBtSelectNone = function(){
+  document.querySelectorAll('.fx-bt-cb').forEach(function(cb){ cb.checked = false; });
+};
+
+window.fxKirimTugasCepat = function(cid){
+  var title = (document.getElementById('fx-bt-title').value||'').trim();
+  var desc = (document.getElementById('fx-bt-desc').value||'').trim();
+  var dl = document.getElementById('fx-bt-deadline').value;
+  var tm = document.getElementById('fx-bt-time').value || '23:59';
+  if (!title){ alert('Judul wajib diisi'); return; }
+
+  var targets = [];
+  document.querySelectorAll('.fx-bt-cb:checked').forEach(function(cb){
+    targets.push(cb.value);
+  });
+  if (!targets.length){ alert('Pilih minimal 1 penerima'); return; }
+
+  var me = window.currentUser || {};
+  var deadlineStr = dl ? (fmtDateShort(dl) + ' ' + tm) : 'tanpa deadline';
+  var msg = desc + (dl ? '\n\n⏰ Deadline: ' + deadlineStr : '');
+
+  var promises = targets.map(function(tid){
+    var nid = uid();
+    return window.fbSet('notifications', nid, {
+      id: nid, classId: cid,
+      fromId: me.studentId || me.email || 'guru',
+      fromName: me.name || 'Guru',
+      fromType: uType(), fromRole: uRole(),
+      toId: tid, type: 'tugas',
+      title: '[TUGAS] ' + title,
+      message: msg,
+      deadline: dl ? (dl + 'T' + tm + ':00') : null,
+      createdAt: Date.now(), readBy: [], doneBy: []
+    });
+  });
+
+  Promise.all(promises).then(function(){
+    logAct('task_create', me.name + ' kirim tugas "' + title + '" ke ' + targets.length + ' siswa', {classId: cid});
+    alert('Tugas terkirim ke ' + targets.length + ' siswa!');
+    closeModal();
+  }).catch(function(err){
+    alert('Gagal: ' + err.message);
+  });
+};
+
+/* ============================================================
+   R.6 — FIX NOTIFIKASI DEADLINE TIDAK MASUK
+   Override getNotifs agar filter toId lebih permisif
+   ============================================================ */
+(function fixGetNotifs(){
+  window.getNotifs = function(){
+    if (!window.currentUser) return [];
+    var u = window.currentUser;
+    if (u.type === 'siswa'){
+      return (window.DB.notifications||[]).filter(function(n){
+        if (n.classId !== u.classId) return false;
+        if (n.toId === 'all' || n.toId === 'some') return true;
+        if (n.toId === u.studentId) return true;
+        if (n.recipientIds && n.recipientIds.indexOf(u.studentId) >= 0) return true;
+        // Fallback: kalau fromType bukan siswa & tidak ada toId spesifik → tampilkan
+        if (!n.toId && n.fromType !== 'siswa') return true;
+        return false;
+      });
+    }
+    if (u.type === 'guru'){
+      var ids = (window.myClasses ? window.myClasses() : []).map(function(c){ return c.id; });
+      return (window.DB.notifications||[]).filter(function(n){
+        if (!n.classId) return true;
+        return ids.indexOf(n.classId) >= 0;
+      });
+    }
+    return (window.DB.notifications||[]).slice();
+  };
+})();
+
+/* ============================================================
+   R.7 — FORCE RE-INJECT CAROUSEL (Setelah refresh/login)
+   ============================================================ */
+function forceInjectCarousel(){
+  if (!window.currentUser) return;
+  if (typeof window.injectSlideTimelines === 'function'){
+    try { window.injectSlideTimelines(); } catch(e){}
+  }
+  // Fallback: kalau masih kosong, retry
+  setTimeout(function(){
+    var mc = document.getElementById('main-content');
+    if (mc && !mc.querySelector('.dash-carousel-wrap') && typeof window.injectSlideTimelines === 'function'){
+      try { window.injectSlideTimelines(); } catch(e){}
+    }
+  }, 1500);
+}
+
+// Hook ke showApp & login
+(function hookCarousel(){
+  var orig = window.showApp;
+  if (typeof orig === 'function'){
+    window.showApp = function(){
+      var ret = orig.apply(this, arguments);
+      setTimeout(forceInjectCarousel, 800);
+      setTimeout(forceInjectCarousel, 2000);
+      setTimeout(forceInjectCarousel, 4000);
+      return ret;
+    };
+  }
+  var origSiswa = window.renderSiswaDash;
+  if (typeof origSiswa === 'function'){
+    window.renderSiswaDash = function(){
+      var ret = origSiswa.apply(this, arguments);
+      setTimeout(forceInjectCarousel, 400);
+      setTimeout(forceInjectCarousel, 1200);
+      return ret;
+    };
+  }
+})();
+
+// Trigger saat page load selesai
+window.addEventListener('load', function(){
+  setTimeout(forceInjectCarousel, 3000);
+});
+
+/* ============================================================
+   R.8 — KAS KELAS DENGAN NAMA TIM
+   Format: { active, nama, nominal, periode, tim: {siswaId: namaTim} }
+   ============================================================ */
+window.openKasKelas = function(){
+  var cid = uCid(); if (!cid) return;
+  var canEdit = uRole()==='bendahara' || isGuru();
+  var data = getKas(cid);
+  var c = findClass(cid); if (!c) return;
+  var students = c.students || [];
+
+  var h = '<div class="alert alert-info">' + ic('briefcase') +
+    '<div><b>Kas Kelas</b> — Atur kas per tim/personal</div></div>';
+
+  if (!data.active){
+    h += '<div class="card" style="border-left:4px solid var(--warning);">' +
+      '<h3>' + ic('warning') + ' Kas Belum Aktif</h3>' +
+      '<p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">' +
+      'Kas harus diaktifkan dulu sebelum bisa mencatat pembayaran.</p>';
+    if (canEdit){
+      h += '<div class="form-group"><label>Nama Kas</label>' +
+        '<input id="fx-kas-nama" value="' + esc(data.nama||'') + '" placeholder="Contoh: Kas Produksi"></div>';
+      h += '<div class="form-group"><label>Nominal per Bayar (Rp)</label>' +
+        '<input type="number" id="fx-kas-nominal" min="0" value="' + (data.nominal||'') + '" placeholder="10000"></div>';
+      h += '<div class="form-group"><label>Periode</label>' +
+        '<select id="fx-kas-periode">' +
+        '<option value="daily"' + (data.periode==='daily'?' selected':'') + '>Harian</option>' +
+        '<option value="weekly"' + (!data.periode||data.periode==='weekly'?' selected':'') + '>Mingguan</option>' +
+        '<option value="monthly"' + (data.periode==='monthly'?' selected':'') + '>Bulanan</option>' +
+        '</select></div>';
+      h += '<div class="form-group"><label>Mulai Tanggal</label>' +
+        '<input type="date" id="fx-kas-mulai" value="' + (data.mulai || new Date().toISOString().split('T')[0]) + '"></div>';
+      h += '<button class="btn btn-success btn-block btn-lg" data-fx="fxAktifkanKas" data-arg="' + cid + '">' +
+        ic('check') + ' Aktifkan Kas</button>';
+    } else {
+      h += '<div style="font-size:12.5px;color:var(--text-muted);">Hanya Bendahara yang bisa mengaktifkan.</div>';
+    }
+    h += '</div>';
+    openModal('Kas Kelas', h);
+    return;
+  }
+
+  /* Kas aktif → tampilkan tabel per siswa dengan kolom Nama Tim */
+  var total = 0, totalPaid = 0;
+  var rows = students.map(function(s){
+    var tim = (data.tim && data.tim[s.id]) || '';
+    var pays = (data.payments && data.payments[s.id]) || [];
+    var isPaid = pays.length > 0;
+    var totalPaidUser = 0;
+    pays.forEach(function(p){ totalPaidUser += p.nominal || data.nominal; });
+    total++;
+    if (isPaid) totalPaid++;
+    return {s:s, tim:tim, isPaid:isPaid, total:totalPaidUser, pays:pays};
+  });
+  var pct = total ? Math.round(totalPaid/total*100) : 0;
+  var totalKumpul = rows.reduce(function(a,r){ return a + r.total; }, 0);
+
+  h += '<div class="progress-banner">' +
+    '<h3>' + esc(data.nama) + '</h3>' +
+    '<div style="font-size:14px;">Rp ' + data.nominal.toLocaleString('id-ID') + ' / ' + periodeLabel(data.periode) + '</div>' +
+    '<div class="big-count" style="font-size:22px;">' + totalPaid + ' / ' + total + ' <span>sudah bayar</span></div>' +
+    '<div class="pct">Total terkumpul: <b>Rp ' + totalKumpul.toLocaleString('id-ID') + '</b></div>' +
+    '<div class="progress-container"><div class="progress-bar ' + (pct===100?'complete':'partial') + '" style="width:' + pct + '%"></div></div>' +
+    '</div>';
+
+  if (canEdit){
+    h += '<div class="action-row" style="margin-bottom:12px;flex-wrap:wrap;">' +
+      '<button class="btn btn-sm" data-fx="fxTambahKas" data-arg="' + cid + '">' + ic('plus','sm') + ' Catat Bayar</button>' +
+      '<button class="btn btn-sm btn-danger" data-fx="fxDeactivateKas" data-arg="' + cid + '">' + ic('x','sm') + ' Nonaktifkan</button>' +
+      '</div>';
+  }
+
+  /* Tabel */
+  h += '<div class="table-wrap"><table><thead><tr>' +
+    '<th>No</th><th>Nama</th><th>Tim</th><th>Status</th><th>Total</th>' +
+    (canEdit?'<th></th>':'') +
+    '</tr></thead><tbody>';
+  rows.forEach(function(r, i){
+    h += '<tr>' +
+      '<td>' + (i+1) + '</td>' +
+      '<td><b>' + esc(r.s.name) + '</b><br><small style="color:var(--text-muted);font-size:10px;">' + esc(roleLabel(r.s.role)) + '</small></td>' +
+      '<td>' +
+        (canEdit ? '<input class="fx-kas-tim" data-sid="' + r.s.id + '" value="' + esc(r.tim) + '" placeholder="(nama tim)" style="width:90px;padding:3px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--card);">'
+                 : (r.tim || '-')) +
+      '</td>' +
+      '<td>' + (r.isPaid ? '<span class="badge badge-success">Lunas</span>' : '<span class="badge badge-warning">Belum</span>') + '</td>' +
+      '<td>Rp ' + r.total.toLocaleString('id-ID') + '</td>' +
+      (canEdit?'<td>' +
+        (r.isPaid ? '<button class="btn btn-sm btn-danger" data-fx="fxKasUnpaid" data-arg="' + cid + '|' + r.s.id + '">' + ic('x','sm') + '</button>'
+                  : '<button class="btn btn-sm btn-success" data-fx="fxKasPaid" data-arg="' + cid + '|' + r.s.id + '">' + ic('check','sm') + '</button>') +
+        '</td>':'') +
+      '</tr>';
+  });
+  h += '</tbody></table></div>';
+
+  if (canEdit){
+    h += '<button class="btn btn-primary btn-block" style="margin-top:12px;" data-fx="fxSaveKasTim" data-arg="' + cid + '">' +
+      ic('save') + ' Simpan Nama Tim</button>';
+  }
+
+  openModal('Kas Kelas', h);
+  if (window.hydrateIcons) window.hydrateIcons();
+};
+
+window.fxAktifkanKas = function(cid){
+  var nama = (document.getElementById('fx-kas-nama').value||'').trim();
+  var nominal = parseFloat(document.getElementById('fx-kas-nominal').value)||0;
+  var periode = document.getElementById('fx-kas-periode').value;
+  var mulai = document.getElementById('fx-kas-mulai').value;
+  if (!nama){ alert('Nama kas wajib'); return; }
+  if (nominal <= 0){ alert('Nominal harus > 0'); return; }
+  var data = getKas(cid);
+  data.active = true; data.nama = nama;
+  data.nominal = nominal; data.periode = periode; data.mulai = mulai;
+  if (!data.payments) data.payments = {};
+  if (!data.tim) data.tim = {};
+  setKas(cid, data);
+  alert('Kas berhasil diaktifkan!');
+  window.openKasKelas();
+};
+
+window.fxSaveKasTim = function(cid){
+  var data = getKas(cid);
+  if (!data.tim) data.tim = {};
+  document.querySelectorAll('.fx-kas-tim').forEach(function(inp){
+    var sid = inp.getAttribute('data-sid');
+    var val = (inp.value||'').trim();
+    if (val) data.tim[sid] = val;
+    else delete data.tim[sid];
+  });
+  setKas(cid, data);
+  alert('Nama tim tersimpan!');
+  window.openKasKelas();
+};
+
+window.fxKasPaid = function(arg){
+  var p = String(arg).split('|'), cid = p[0], sid = p[1];
+  var data = getKas(cid);
+  if (!data.payments) data.payments = {};
+  if (!data.payments[sid]) data.payments[sid] = [];
+  data.payments[sid].push({
+    tanggal: new Date().toISOString().split('T')[0],
+    nominal: data.nominal,
+    by: u().name
+  });
+  setKas(cid, data);
+  window.openKasKelas();
+};
+
+window.fxKasUnpaid = function(arg){
+  var p = String(arg).split('|'), cid = p[0], sid = p[1];
+  if (!confirm('Hapus pembayaran terakhir?')) return;
+  var data = getKas(cid);
+  if (data.payments && data.payments[sid] && data.payments[sid].length){
+    data.payments[sid].pop();
+  }
+  setKas(cid, data);
+  window.openKasKelas();
+};
+
+window.fxTambahKas = function(cid){
+  alert('Klik tombol ✓ hijau di kolom Aksi untuk mencatat pembayaran.');
+};
+
+/* ============================================================
+   R.9 — UPLOAD NOTA & GAMBAR BENDAHARA (GDrive alias)
+   ============================================================ */
+(function ensureGDrive(){
+  if (typeof window.openGDriveKeuangan !== 'function'){
+    window.openGDriveKeuangan = function(cid){
+      cid = cid || uCid();
+      var h = '<div class="alert alert-info">' + ic('folder') +
+        '<div><b>Arsip Nota & Foto Pembelian</b><br>Simpan link Google Drive folder Anda.</div></div>';
+      h += '<div class="form-group"><label>Link Folder Google Drive</label>' +
+        '<input type="url" id="fx-gd-url" placeholder="https://drive.google.com/drive/folders/..." ' +
+        'value="' + esc(localStorage.getItem('sppt_gd_keuangan_' + cid) || '') + '"></div>';
+      h += '<div class="form-group"><label>Nama Folder</label>' +
+        '<input id="fx-gd-name" placeholder="Contoh: NOTA_BARANG_IXD"></div>';
+      h += '<div class="form-group"><label>Catatan</label>' +
+        '<textarea id="fx-gd-note" rows="2" placeholder="Deskripsi isi folder"></textarea></div>';
+      h += '<div class="alert alert-warning" style="font-size:12px;">' +
+        ic('warning','sm') + '<div>Pastikan folder diset <b>"Siapa saja yang memiliki link"</b>.</div></div>';
+      h += '<button class="btn btn-primary btn-block" data-fx="fxSimpanGDriveKeuangan" data-arg="' + cid + '">' +
+        ic('save') + ' Simpan Link</button>';
+      if (localStorage.getItem('sppt_gd_keuangan_' + cid)){
+        h += '<a href="' + esc(localStorage.getItem('sppt_gd_keuangan_' + cid)) + '" target="_blank" ' +
+          'class="btn btn-success btn-block" style="margin-top:8px;text-decoration:none;">' +
+          ic('folder') + ' Buka Folder Drive</a>';
+      }
+      openModal('Arsip Nota & Foto', h);
+      if (window.hydrateIcons) window.hydrateIcons();
+    };
+  }
+  if (typeof window.fxSimpanGDriveKeuangan !== 'function'){
+    window.fxSimpanGDriveKeuangan = function(cid){
+      var url = (document.getElementById('fx-gd-url').value||'').trim();
+      if (!/^https?:\/\/(drive|docs)\.google\.com\//i.test(url)){
+        alert('Link harus dari Google Drive');
+        return;
+      }
+      var name = (document.getElementById('fx-gd-name').value||'').trim();
+      var note = (document.getElementById('fx-gd-note').value||'').trim();
+      try {
+        localStorage.setItem('sppt_gd_keuangan_' + cid, url);
+        localStorage.setItem('sppt_gd_keuangan_name_' + cid, name);
+        localStorage.setItem('sppt_gd_keuangan_note_' + cid, note);
+      } catch(e){}
+      window.fbSet('gdrive_links', 'keuangan_' + cid, {
+        type: 'keuangan', classId: cid,
+        url: url, folderName: name, note: note,
+        studentName: u().name, studentRole: uRole(),
+        updatedAt: Date.now()
+      });
+      alert('Link tersimpan!');
+      closeModal();
+    };
+  }
+  if (typeof window.openGDriveDokpub !== 'function'){
+    window.openGDriveDokpub = function(cid){
+      cid = cid || uCid();
+      var h = '<div class="alert alert-info">' + ic('folder') +
+        '<div><b>Galeri Dokumentasi</b><br>Simpan link Google Drive folder Anda.</div></div>';
+      h += '<div class="form-group"><label>Link Folder Google Drive</label>' +
+        '<input type="url" id="fx-gd-url" placeholder="https://drive.google.com/drive/folders/..." ' +
+        'value="' + esc(localStorage.getItem('sppt_gd_dokpub_' + cid) || '') + '"></div>';
+      h += '<div class="form-group"><label>Nama Folder</label>' +
+        '<input id="fx-gd-name" placeholder="Contoh: DOKPUB_IXD"></div>';
+      h += '<button class="btn btn-primary btn-block" data-fx="fxSimpanGDriveDokpub" data-arg="' + cid + '">' +
+        ic('save') + ' Simpan Link</button>';
+      if (localStorage.getItem('sppt_gd_dokpub_' + cid)){
+        h += '<a href="' + esc(localStorage.getItem('sppt_gd_dokpub_' + cid)) + '" target="_blank" ' +
+          'class="btn btn-success btn-block" style="margin-top:8px;text-decoration:none;">' +
+          ic('folder') + ' Buka Folder Drive</a>';
+      }
+      openModal('Galeri Dokumentasi', h);
+      if (window.hydrateIcons) window.hydrateIcons();
+    };
+  }
+  if (typeof window.fxSimpanGDriveDokpub !== 'function'){
+    window.fxSimpanGDriveDokpub = function(cid){
+      var url = (document.getElementById('fx-gd-url').value||'').trim();
+      if (!/^https?:\/\/(drive|docs)\.google\.com\//i.test(url)){ alert('Link tidak valid'); return; }
+      var name = (document.getElementById('fx-gd-name').value||'').trim();
+      try { localStorage.setItem('sppt_gd_dokpub_' + cid, url); } catch(e){}
+      window.fbSet('gdrive_links', 'dokpub_' + cid, {
+        type: 'dokpub', classId: cid,
+        url: url, folderName: name,
+        studentName: u().name, studentRole: uRole(),
+        updatedAt: Date.now()
+      });
+      alert('Link tersimpan!');
+      closeModal();
+    };
+  }
+})();
+
+/* ============================================================
+   R.10 — MENU SISWA (Fitur Merata)
+   ============================================================ */
+window.openSiswaMenu = function(){
+  var role = uRole();
+  var h = '<div class="fx-menu-scroll">';
+  h += '<div class="alert alert-info" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">' +
+    ic('user','lg') + '<div style="flex:1;"><b>' + esc(u().name||'') + '</b><br>' +
+    '<small style="color:var(--text-muted);">' + esc(roleLabel(role)) + '</small></div></div>';
+
+  function tile(items){
+    var o = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+    items.forEach(function(it){
+      o += '<button class="fx-mi-tile" data-fx-menu="' + it.a + '">' +
+        '<div class="fx-mi">' + ic(it.i, 20) + '</div>' +
+        '<div class="fx-ml">' + esc(it.l) + '</div></button>';
+    });
+    return o + '</div>';
+  }
+
+  h += '<div class="fx-menu-section">' + ic('clipboard','sm') + ' Tugas & Nilai</div>';
+  h += tile([
+    { i:'clipboard',   l:'Tugas',      a:'openTugasSaya' },
+    { i:'checkSquare', l:'Checklist',  a:'openChecklistPribadi' },
+    { i:'edit',        l:'Beri Nilai', a:'openPenilaianSiswaDashboard' },
+    { i:'target',      l:'Rubrik',     a:'openRubrikPenilaian' },
+    { i:'clock',       l:'Deadline',   a:'openDeadlineList' },
+    { i:'users',       l:'Tim',        a:'openChecklistTim' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('users','sm') + ' Struktur</div>';
+  h += tile([
+    { i:'award',    l:'Kerabat',  a:'openStrukturKerabatKerja' },
+    { i:'chart',    l:'Progres',  a:'openDivisionProgressSelf' },
+    { i:'activity', l:'Aktivitas',a:'openActivityFeedModal' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('calendar','sm') + ' Jadwal</div>';
+  var jItems = [
+    { i:'calendar', l:'Absensi',  a:'openMeetingList' },
+    { i:'clock',    l:'Latihan',  a:'openJadwalLatihan' },
+    { i:'image',    l:'Konten',   a:'openKalenderKonten' }
+  ];
+  h += tile(jItems);
+
+  h += '<div class="fx-menu-section">' + ic('folder','sm') + ' Dokumen</div>';
+  h += tile([
+    { i:'fileText', l:'Dokumen', a:'openDokumenSaya' },
+    { i:'book',     l:'Naskah',  a:'openNaskahList' },
+    { i:'user',     l:'Foto',    a:'openUploadFotoProfil' }
+  ]);
+
+  /* Khusus peran */
+  var kItems = [];
+  if (['pimpinan_produksi','sutradara','koor_musik','koor_perlengkapan'].indexOf(role) >= 0)
+    kItems.push({ i:'briefcase', l:'Booking', a:'openBookingAlat' });
+  if (['koor_perlengkapan','anggota_perlengkapan'].indexOf(role) >= 0)
+    kItems.push({ i:'briefcase', l:'Peminjaman', a:'openPeminjamanBarang' });
+  if (role === 'bendahara'){
+    kItems.push({ i:'chart',     l:'Keuangan',  a:'openKeuangan' });
+    kItems.push({ i:'briefcase', l:'Kas',       a:'openKasKelas' });
+    kItems.push({ i:'folder',    l:'Nota',      a:'openGDriveKeuangan' });
+  }
+  if (['pimpinan_produksi','sekretaris','sutradara'].indexOf(role) >= 0){
+    kItems.push({ i:'layers', l:'Tahapan', a:'openSistemTahapan' });
+    kItems.push({ i:'send',   l:'Beri Tugas', a:'openBeriTugasCepat' });
+  }
+  if (role === 'asisten_sutradara'){
+    kItems.push({ i:'send', l:'Beri Tugas', a:'openBeriTugasCepat' });
+  }
+  if (role.indexOf('koor_') === 0){
+    kItems.push({ i:'send', l:'Beri Tugas', a:'openBeriTugasCepat' });
+  }
+  if (kItems.length){
+    h += '<div class="fx-menu-section">' + ic('star','sm') + ' Khusus ' + esc(roleLabel(role)) + '</div>';
+    h += tile(kItems);
+  }
+
+  h += '<div class="fx-menu-section">' + ic('gear','sm') + ' Lainnya</div>';
+  h += tile([
+    { i:'warning',       l:'Aduan',   a:'openAduanSiswa' },
+    { i:'messageCircle', l:'Koordinasi', a:'openKoordinasiAntarKelas' },
+    { i:'key',           l:'Password',a:'openChangePassword' },
+    { i:'out',           l:'Keluar',  a:'logout' }
+  ]);
+
+  h += '</div>';
+  openModal('Menu', h);
+  if (window.hydrateIcons) window.hydrateIcons();
+};
+
+/* ============================================================
+   R.11 — MENU GURU (Bersih, tanpa Backup)
+   ============================================================ */
+window.openGuruMenu = function(){
+  var h = '<div class="fx-menu-scroll">';
+  h += '<div class="alert alert-info" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">' +
+    ic('user','lg') + '<div style="flex:1;"><b>' + esc(u().name||'') + '</b><br>' +
+    '<small style="color:var(--text-muted);">Guru Pengampu</small></div></div>';
+
+  function tile(items){
+    var o = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+    items.forEach(function(it){
+      o += '<button class="fx-mi-tile" data-fx-menu="' + it.a + '">' +
+        '<div class="fx-mi">' + ic(it.i, 20) + '</div>' +
+        '<div class="fx-ml">' + esc(it.l) + '</div></button>';
+    });
+    return o + '</div>';
+  }
+
+  h += '<div class="fx-menu-section">' + ic('chart','sm') + ' Kelas Saya</div>';
+  h += tile([
+    { i:'school',   l:'Kelola Kelas',  a:'openDaftarKelasGuru' },
+    { i:'clipboard',l:'Beri Tugas',    a:'openBeriTugasCepat' },
+    { i:'edit',     l:'Penilaian',     a:'openPenilaianGuruDashboard' },
+    { i:'chart',    l:'Rekap Nilai',   a:'openRekapNilai' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('messageCircle','sm') + ' Komunikasi</div>';
+  h += tile([
+    { i:'warning',       l:'Aduan',     a:'openAduanGuru' },
+    { i:'messageCircle', l:'Log WA',    a:'openLogWA' },
+    { i:'bell',          l:'Pesan',     a:'openDashboardPesan' },
+    { i:'activity',      l:'Aktivitas', a:'openActivityLog' }
+  ]);
+
+  h += '<div class="fx-menu-section">' + ic('gear','sm') + ' Akun</div>';
+  h += tile([
+    { i:'user', l:'Profil',   a:'openGuruProfile' },
+    { i:'key',  l:'Password', a:'openChangePassword' },
+    { i:'out',  l:'Keluar',   a:'logout' }
+  ]);
+
+  h += '</div>';
+  openModal('Menu Guru', h);
+  if (window.hydrateIcons) window.hydrateIcons();
+};
+
+window.openDaftarKelasGuru = function(){
+  if (typeof window.renderGuruDash === 'function') window.renderGuruDash();
+  closeModal();
+};
+
+console.log('[features-fix] v7.0 AUDIT loaded');
+console.log('  → Seed guru bawaan');
+console.log('  → Menu admin: Backup, Tambah Guru, Statistik');
+console.log('  → Menu guru: bersih (tanpa Backup)');
+console.log('  → Matriks penilaian diperbaiki');
+console.log('  → Deadline cepat (1 form)');
+console.log('  → Notif deadline fix');
+console.log('  → Kas dengan nama tim');
+console.log('  → GDrive nota & galeri bendahara');
+console.log('  → Carousel auto-inject ulang');
 })();
