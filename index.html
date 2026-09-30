@@ -3,19 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5">
-<meta name="theme-color" content="#f8f9fa" id="meta-theme-color">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f8f9fa">
+<meta name="description" content="SP-PPT — Sistem Penilaian Proyek Produksi Teater">
 <title>SP-PPT — Sistem Penilaian Proyek Produksi Teater</title>
 
+<!-- Library -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="style.css">
 
 <script>
+/* ============================================================
+   KONFIGURASI FIREBASE — GANTI DENGAN MILIK ANDA
+   ============================================================ */
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyDczk0n-4QvvwTDikDBnuTkRX_SlXIV9JQ",
   authDomain: "penilaian-proyek-teater-siswa.firebaseapp.com",
@@ -24,126 +26,269 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "278312873930",
   appId: "1:278312873930:web:0de00becefffd9e4a2e933"
 };
+
+/* ============================================================
+   ICON LIBRARY — SVG inline
+   ============================================================ */
+window.ICONS = {
+  sun:'<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
+  moon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff:'<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>',
+  key:'<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3"/>',
+  out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
+  x:'<path d="M18 6L6 18M6 6l12 12"/>',
+  user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  personPlus:'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  doc:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+  folder:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+  book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  clipboard:'<path d="M9 4h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>',
+  bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  messageCircle:'<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+  megaphone:'<path d="M3 11l19-9-9 19-2-8-8-2z"/>',
+  send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  checkCircle:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
+  checkSquare:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  trash:'<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
+  edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+  save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  refresh:'<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  warning:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  chart:'<path d="M18 20V10M12 20V4M6 20v-6"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  layers:'<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  award:'<circle cx="12" cy="8" r="7"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/>',
+  star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+  school:'<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+  back:'<path d="M19 12H5M12 19l-7-7 7-7"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  briefcase:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  fileText:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>'
+};
+
+window.ico = function(name, size){
+  var p = window.ICONS[name] || window.ICONS.info;
+  var s = size;
+  if (s === 'sm') s = 13;
+  else if (s === 'lg') s = 20;
+  else if (s === 'md') s = 16;
+  else if (typeof s !== 'number') s = 16;
+  return '<svg class="ico" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" ' +
+    'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+    'stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+};
 </script>
 </head>
 <body>
 
-<div id="loading" class="loading-overlay">
+<!-- LOADING -->
+<div id="loading-screen" class="loading-overlay">
   <div class="loading-box">
     <div class="spinner"></div>
-    <p id="loading-text">Memuat aplikasi...</p>
+    <h3>Memuat aplikasi...</h3>
+    <p>Mohon tunggu sebentar</p>
   </div>
 </div>
 
-<div id="login-screen" class="auth-screen hidden">
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="container auth-container hidden">
   <div class="auth-box">
-    <div class="brand">
+    <header class="brand">
       <div class="brand-logos">
         <img src="https://iili.io/nHsHgfe.png" alt="Logo" onerror="this.style.display='none'">
         <img src="https://iili.io/nBiviCX.png" alt="Logo" onerror="this.style.display='none'">
       </div>
       <h1>Sistem Penilaian Proyek Produksi Teater</h1>
       <p>SMP Negeri 10 Samarinda</p>
+    </header>
+
+    <div class="theme-wrap">
+      <div class="theme-toggle">
+        <button type="button" onclick="setTheme('light')" data-theme="light">☀️ Terang</button>
+        <button type="button" onclick="setTheme('dark')"  data-theme="dark">🌙 Gelap</button>
+        <button type="button" onclick="setTheme('auto')"  data-theme="auto">⚙️ Auto</button>
+      </div>
     </div>
+
     <nav class="tabs">
-      <button class="tab active" data-tab="guru">Guru</button>
-      <button class="tab" data-tab="siswa">Siswa</button>
-      <button class="tab" data-tab="admin">Admin</button>
+      <button type="button" class="tab active" onclick="switchLoginTab('guru')" id="tab-login-guru">Guru</button>
+      <button type="button" class="tab" onclick="switchLoginTab('siswa')" id="tab-login-siswa">Siswa</button>
+      <button type="button" class="tab" onclick="switchLoginTab('admin')" id="tab-login-admin">Admin</button>
     </nav>
 
-    <form id="form-login-guru" class="login-form">
-      <div class="form-group"><label>Email Guru</label>
-        <input type="email" id="guru-email" autocomplete="username"></div>
-      <div class="form-group"><label>Password</label>
-        <div class="pw-wrap"><input type="password" id="guru-password" autocomplete="current-password">
-          <button type="button" class="pw-toggle" data-target="guru-password"></button></div></div>
-      <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk</button>
+    <form id="form-login-guru" onsubmit="event.preventDefault();loginGuru()">
+      <div class="form-group">
+        <label>Email Guru</label>
+        <input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id">
+      </div>
+      <div class="form-group pw-toggle">
+        <label>Password</label>
+        <input type="password" id="guru-password" placeholder="Password">
+        <button class="toggle-btn" type="button" onclick="togglePw('guru-password',this)"></button>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Guru</button>
     </form>
 
-    <form id="form-login-siswa" class="login-form hidden">
-      <div class="form-group"><label>Kelas</label>
-        <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select></div>
-      <div class="form-group"><label>Email atau No. WhatsApp</label>
-        <input type="text" id="siswa-login" autocomplete="username"></div>
-      <div class="form-group"><label>Password</label>
-        <div class="pw-wrap"><input type="password" id="siswa-password" autocomplete="current-password">
-          <button type="button" class="pw-toggle" data-target="siswa-password"></button></div></div>
-      <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk</button>
-      <div class="form-footer">Belum punya akun? <a href="#" id="link-register">Daftar</a></div>
+    <form id="form-login-siswa" class="hidden" onsubmit="event.preventDefault();loginSiswa()">
+      <div class="form-group">
+        <label>Pilih Kelas</label>
+        <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select>
+      </div>
+      <div class="form-group">
+        <label>Email atau No. WhatsApp</label>
+        <input type="text" id="siswa-email" placeholder="email atau 08123456789">
+      </div>
+      <div class="form-group pw-toggle">
+        <label>Password</label>
+        <input type="password" id="siswa-password" placeholder="Password">
+        <button class="toggle-btn" type="button" onclick="togglePw('siswa-password',this)"></button>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Siswa</button>
+      <div class="divider-text">
+        Belum punya akun? <button type="button" class="link" onclick="showRegisterPage()">Daftar di sini</button>
+      </div>
     </form>
 
-    <form id="form-login-admin" class="login-form hidden">
-      <div class="form-group"><label>Email Admin</label>
-        <input type="email" id="admin-email" autocomplete="username"></div>
-      <div class="form-group"><label>Password Admin</label>
-        <div class="pw-wrap"><input type="password" id="admin-password" autocomplete="current-password">
-          <button type="button" class="pw-toggle" data-target="admin-password"></button></div></div>
-      <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk Admin</button>
+    <form id="form-login-admin" class="hidden" onsubmit="event.preventDefault();loginAdmin()">
+      <div class="alert alert-info">
+        🔒 <div><b>Area Administrator</b><br>Kelola akun guru pengampu.</div>
+      </div>
+      <div class="form-group">
+        <label>Email Admin</label>
+        <input type="email" id="admin-email">
+      </div>
+      <div class="form-group pw-toggle">
+        <label>Password</label>
+        <input type="password" id="admin-password">
+        <button class="toggle-btn" type="button" onclick="togglePw('admin-password',this)"></button>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Admin</button>
     </form>
   </div>
 </div>
 
-<div id="register-screen" class="auth-screen hidden">
+<!-- REGISTER SCREEN -->
+<div id="register-screen" class="container auth-container hidden">
   <div class="auth-box">
-    <div class="brand"><h1>Pendaftaran Siswa</h1><p>Gunakan Kode Kelas dari guru</p></div>
-    <form id="form-register" class="login-form">
-      <div class="form-group"><label>Kode Kelas</label>
-        <input type="text" id="reg-code" class="input-code" maxlength="12"></div>
-      <div class="form-group"><label>Nama Lengkap</label><input type="text" id="reg-name"></div>
-      <div class="form-group"><label>Email</label><input type="email" id="reg-email"></div>
-      <div class="form-group"><label>No. WhatsApp</label><input type="tel" id="reg-phone"></div>
-      <div class="form-group"><label>Password</label>
-        <div class="pw-wrap"><input type="password" id="reg-password">
-          <button type="button" class="pw-toggle" data-target="reg-password"></button></div></div>
-      <div class="form-group"><label>Konfirmasi Password</label><input type="password" id="reg-confirm"></div>
-      <div class="form-group"><label>Peran</label><select id="reg-role"></select></div>
-      <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar</button>
-      <div class="form-footer">Sudah punya akun? <a href="#" id="link-login">Login</a></div>
+    <header class="brand">
+      <h1>Pendaftaran Siswa</h1>
+      <p>Gunakan Kode Kelas dari guru</p>
+    </header>
+    <form onsubmit="event.preventDefault();registerSiswa()">
+      <div class="form-group">
+        <label>Kode Kelas</label>
+        <input type="text" id="daftar-code" placeholder="Contoh: IXS-1234" style="text-transform:uppercase;letter-spacing:0.15em;text-align:center;font-weight:700;">
+      </div>
+      <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="daftar-email"></div>
+      <div class="form-group"><label>No. WhatsApp</label><input type="tel" id="daftar-phone" placeholder="08123456789"></div>
+      <div class="form-group pw-toggle">
+        <label>Password</label>
+        <input type="password" id="daftar-password">
+        <button class="toggle-btn" type="button" onclick="togglePw('daftar-password',this)"></button>
+      </div>
+      <div class="form-group"><label>Konfirmasi Password</label><input type="password" id="daftar-confirm"></div>
+      <div class="form-group"><label>Peran</label><select id="daftar-role"></select></div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar Sekarang</button>
+      <div class="divider-text">
+        Sudah punya akun? <button type="button" class="link" onclick="showLoginPage()">Login</button>
+      </div>
     </form>
   </div>
 </div>
 
-<div id="app" class="app-container hidden">
-  <header class="app-header">
-    <div class="header-brand">
+<!-- MAIN APP -->
+<div id="app-container" class="container hidden">
+  <div class="app-brand-header">
+    <div class="app-brand-logos">
       <img src="https://iili.io/nHsHgfe.png" alt="Logo" onerror="this.style.display='none'">
-      <div><h2>Sistem Penilaian Proyek Produksi Teater</h2><p>SMP Negeri 10 Samarinda</p></div>
+      <img src="https://iili.io/nBiviCX.png" alt="Logo" onerror="this.style.display='none'">
     </div>
-    <div class="header-actions">
-      <button class="btn-icon" id="btn-theme" title="Ganti tema"></button>
-      <button class="btn-icon" id="btn-notif" title="Notifikasi">
-        <span class="notif-badge hidden">0</span></button>
-      <button class="btn-icon" id="btn-password" title="Ubah Password"></button>
-      <button class="btn-icon" id="btn-logout" title="Logout"></button>
+    <div class="app-brand-text">
+      <h1>Sistem Penilaian Proyek Produksi Teater</h1>
+      <p>SMP Negeri 10 Samarinda</p>
     </div>
-  </header>
-  <main class="app-main">
-    <div class="user-info" id="user-info"></div>
-    <div id="main-content" class="main-content"></div>
-  </main>
+  </div>
+
+  <div class="header">
+    <div class="header-info">
+      <h2 id="header-title-text">Dashboard</h2>
+      <div class="user-info" id="user-info"></div>
+    </div>
+    <div class="actions">
+      <div class="theme-toggle">
+        <button type="button" onclick="setTheme('light')" data-theme="light">☀️</button>
+        <button type="button" onclick="setTheme('dark')"  data-theme="dark">🌙</button>
+        <button type="button" onclick="setTheme('auto')"  data-theme="auto">⚙️</button>
+      </div>
+      <button class="notif-btn hidden" id="notif-btn" onclick="openNotifPanel()">
+        🔔 <span>Notifikasi</span>
+        <span class="notif-badge hidden" id="notif-badge">0</span>
+      </button>
+      <button class="btn btn-sm" id="btn-change-pw" onclick="openChangePassword()">🔑 Password</button>
+      <button class="btn btn-sm" onclick="logout()">🚪 Logout</button>
+    </div>
+  </div>
+
+  <div class="content" id="main-content"></div>
 </div>
 
-<aside id="notif-panel" class="notif-panel">
-  <div class="notif-header"><h3>Notifikasi</h3>
-    <button class="btn-icon" id="btn-close-notif"></button></div>
-  <div class="notif-body" id="notif-body"></div>
+<!-- NOTIF PANEL -->
+<div class="notif-backdrop" id="notif-backdrop" onclick="closeNotifPanel()"></div>
+<aside class="notif-panel" id="notif-panel">
+  <div class="notif-panel-header">
+    <h3>🔔 Notifikasi</h3>
+    <button class="close-btn" onclick="closeNotifPanel()">×</button>
+  </div>
+  <div class="notif-panel-body" id="notif-panel-body"></div>
 </aside>
-<div id="notif-backdrop" class="notif-backdrop"></div>
 
+<!-- MODAL -->
 <div id="modal" class="modal-overlay hidden">
   <div class="modal-content">
-    <div class="modal-header"><h3 id="modal-title"></h3>
-      <button class="btn-icon" id="modal-close"></button></div>
-    <div id="modal-body" class="modal-body"></div>
+    <div class="modal-header">
+      <h3 id="modal-title">Modal</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
   </div>
 </div>
 
-<button id="btn-panduan" class="fab fab-panduan" title="Panduan"></button>
-<button id="btn-aduan" class="fab fab-aduan hidden" title="Aduan"></button>
-<button id="btn-kerabat" class="fab fab-kerabat hidden" title="Kerabat Kerja"></button>
+<!-- FLOATING PANDUAN -->
+<button id="btn-floating-panduan" class="floating-panduan" onclick="openPanduan()">
+  📖 <span class="floating-panduan-label">Panduan</span>
+</button>
 
-<script src="style.css"></script>
-<script src="js/core.js"></script>
-<script src="js/features.js"></script>
+<!-- SCRIPTS -->
+<script src="js/app.js"></script>
+<script src="js/features_score.js"></script>
+
+<script>
+/* Hide loading fallback */
+setTimeout(function(){
+  var ls = document.getElementById('loading-screen');
+  if (ls && ls.style.display !== 'none' && !ls.classList.contains('hidden')){
+    var t = ls.querySelector('h3');
+    if (t) t.textContent = 'Server lambat, menampilkan aplikasi...';
+    if (window.__forceHideLoading) window.__forceHideLoading();
+  }
+}, 5000);
+</script>
 </body>
 </html>
