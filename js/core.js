@@ -1,5 +1,6 @@
 /* ============================================================
-   SP-PPT v2.0 — CORE (Utils + Firebase + State + Auth + Icons + Modal + Notif + Toolbar)
+   SP-PPT v2.0 — CORE
+   Utils + Firebase + State + Auth + Icons + Modal + Notif + Toolbar + Boot
    ============================================================ */
 (function(){
 'use strict';
@@ -617,6 +618,7 @@ window.openGuruPasswordView = function(cid){
     '<input type="text" id="pwd-search" style="width:100%;padding:10px;margin-bottom:10px;" placeholder="Cari..." oninput="window.__renderPwdTable()">'+
     '<div id="pwd-table"></div>';
   window.openModal('Password Siswa — '+c.name,h);
+  window.__viewClassId = cid;
   setTimeout(window.__renderPwdTable,100);
 };
 window.__renderPwdTable = function(){
@@ -667,7 +669,25 @@ document.addEventListener('DOMContentLoaded',function(){
     var t = (window.DB.teachers||[]).find(function(x){
       return window.U.normEmail(x.email)===email && String(x.password).trim()===pw;
     });
-    if(!t){ window.toast('Email atau password salah','error'); return; }
+    if(!t){
+      // fallback: coba fetch langsung dari Firestore (kalau listener belum selesai)
+      if(window.fbReady){
+        window.fsGet('teachers',email).then(function(snap){
+          if(snap.exists){
+            var td = snap.data();
+            if(String(td.password||'').trim() === pw){
+              window.currentUser = { type:'guru', email:td.email||email, name:td.name||email };
+              window.saveSession(); window.logAct('login',(td.name||email)+' login',{});
+              window.showApp(); return;
+            }
+          }
+          window.toast('Email atau password salah','error');
+        }).catch(function(){ window.toast('Email atau password salah','error'); });
+      } else {
+        window.toast('Email atau password salah','error');
+      }
+      return;
+    }
     window.currentUser = { type:'guru', email:t.email, name:t.name };
     window.saveSession(); window.logAct('login',t.name+' login',{});
     window.showApp();
@@ -780,11 +800,13 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 window.showLogin = function(){
+  var ld = document.getElementById('loading'); if(ld) ld.style.display = 'none';
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('register-screen').classList.add('hidden');
   document.getElementById('app').classList.add('hidden');
 };
 window.showRegister = function(){
+  var ld = document.getElementById('loading'); if(ld) ld.style.display = 'none';
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('register-screen').classList.remove('hidden');
   document.getElementById('app').classList.add('hidden');
@@ -793,6 +815,170 @@ document.addEventListener('click',function(e){
   if(e.target.id==='link-register'){ e.preventDefault(); window.showRegister(); }
   if(e.target.id==='link-login'){ e.preventDefault(); window.showLogin(); }
 });
+
+/* ============================================================
+   DATA LISTENERS (Firestore → window.DB)
+   ============================================================ */
+function populateClassDropdown(){
+  var sel = document.getElementById('siswa-kelas');
+  if(!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+  (window.DB.classes||[]).forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = c.name || c.id;
+    sel.appendChild(o);
+  });
+  if(cur) sel.value = cur;
+}
+window.__populateClassDropdown = populateClassDropdown;
+
+function startRealtime(){
+  if(!window.fbReady){
+    console.warn('[realtime] Firebase belum siap:', window.fbError);
+    return;
+  }
+  try{
+    window.fb.collection('teachers').onSnapshot(function(snap){
+      window.DB.teachers = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      console.log('[teachers] loaded:', window.DB.teachers.length);
+    }, function(e){ console.warn('[teachers]', e.message); });
+
+    window.fb.collection('classes').onSnapshot(function(snap){
+      window.DB.classes = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      console.log('[classes] loaded:', window.DB.classes.length);
+      populateClassDropdown();
+    }, function(e){ console.warn('[classes]', e.message); });
+
+    window.fb.collection('notifications').onSnapshot(function(snap){
+      window.DB.notifications = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      if(window.currentUser) window.updateNotifBadge();
+    }, function(e){ console.warn('[notif]', e.message); });
+
+    window.fb.collection('checklists').onSnapshot(function(snap){
+      window.DB.checklists = {};
+      snap.docs.forEach(function(d){ window.DB.checklists[d.id] = d.data(); });
+    }, function(e){ console.warn('[checklists]', e.message); });
+
+    window.fb.collection('meetings').onSnapshot(function(snap){
+      window.DB.meetings = {};
+      snap.docs.forEach(function(d){ window.DB.meetings[d.id] = Object.assign({id:d.id}, d.data()); });
+    }, function(e){ console.warn('[meetings]', e.message); });
+
+    window.fb.collection('activity_logs').orderBy('createdAt','desc').limit(100)
+      .onSnapshot(function(snap){
+        window.DB.activityLogs = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      }, function(e){ /* index belum siap — abaikan */ });
+  } catch(e){ console.error('[realtime]', e); }
+}
+
+/* ============================================================
+   SHOW APP setelah login
+   ============================================================ */
+window.showApp = function(){
+  var l = document.getElementById('login-screen');    if(l) l.classList.add('hidden');
+  var r = document.getElementById('register-screen'); if(r) r.classList.add('hidden');
+  var a = document.getElementById('app');             if(a) a.classList.remove('hidden');
+  var ld = document.getElementById('loading');        if(ld) ld.style.display = 'none';
+
+  var ui = document.getElementById('user-info');
+  if(ui){
+    var role = window.myRole();
+    var rl = (window.ROLES[role] && window.ROLES[role].label) || '';
+    var cls = (window.DB.classes||[]).find(function(c){ return c.id === window.myCid(); });
+    var parts = ['Masuk sebagai <b>' + window.U.esc(window.myName()) + '</b>'];
+    if(cls) parts.push(window.U.esc(cls.name));
+    if(rl)  parts.push(window.U.esc(rl));
+    if(window.myType()==='admin') parts.push('Admin');
+    if(window.myType()==='guru')  parts.push('Guru');
+    ui.innerHTML = parts.join(' · ');
+  }
+
+  try{ window.injectToolbar  && window.injectToolbar();  }catch(e){ console.warn(e); }
+  try{ window.injectCarousel && window.injectCarousel(); }catch(e){ console.warn(e); }
+  try{ window.injectKerabat  && window.injectKerabat();  }catch(e){ console.warn(e); }
+  try{ window.updateNotifBadge && window.updateNotifBadge(); }catch(e){ console.warn(e); }
+
+  // Tombol header
+  var bTheme = document.getElementById('btn-theme');
+  if(bTheme && !bTheme.__bound){
+    bTheme.__bound = true;
+    bTheme.innerHTML = window.ico('sun',18);
+    bTheme.addEventListener('click', function(){
+      var cur = document.documentElement.getAttribute('data-theme')||'light';
+      var next = cur==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme', next);
+      bTheme.innerHTML = window.ico(next==='dark'?'sun':'sun',18);
+    });
+  }
+  var bPw = document.getElementById('btn-password');
+  if(bPw && !bPw.__bound){
+    bPw.__bound = true;
+    bPw.innerHTML = window.ico('key',18);
+    bPw.addEventListener('click', function(){ window.openChangePassword(); });
+  }
+  var bOut = document.getElementById('btn-logout');
+  if(bOut && !bOut.__bound){
+    bOut.__bound = true;
+    bOut.innerHTML = window.ico('logout',18);
+    bOut.addEventListener('click', function(){ window.logoutConfirm(); });
+  }
+  // Panduan FAB (opsional)
+  var bPanduan = document.getElementById('btn-panduan');
+  if(bPanduan && !bPanduan.__bound){
+    bPanduan.__bound = true;
+    bPanduan.innerHTML = window.ico('book',22);
+    bPanduan.addEventListener('click', function(){
+      window.openModal('Panduan Singkat',
+        '<div class="alert alert-info">'+window.ico('info')+'<div>'+
+        '<b>Langkah cepat:</b><br>'+
+        '1. Guru/Admin membuat kelas & menambah siswa.<br>'+
+        '2. Guru memberi kode kelas untuk pendaftaran siswa.<br>'+
+        '3. Siswa login dengan email/WA + password.<br>'+
+        '4. Gunakan tombol di toolbar untuk mengakses fitur.</div></div>');
+    });
+  }
+};
+
+/* ============================================================
+   BOOT SEQUENCE
+   ============================================================ */
+startRealtime();
+
+window.__boot = function(){
+  var loading = document.getElementById('loading');
+  var session = window.getSession();
+  if(session) window.currentUser = session;
+
+  var started = false;
+  function start(){
+    if(started) return; started = true;
+    if(loading) loading.style.display = 'none';
+    if(window.currentUser) window.showApp();
+    else window.showLogin();
+  }
+
+  if(window.fbReady){
+    var t0 = Date.now();
+    var chk = setInterval(function(){
+      var hasData = (window.DB.teachers && window.DB.teachers.length) ||
+                    (window.DB.classes  && window.DB.classes.length);
+      if(hasData || Date.now() - t0 > 3500){
+        clearInterval(chk); start();
+      }
+    }, 120);
+  } else {
+    console.warn('[boot] Firebase offline:', window.fbError);
+    start();
+  }
+};
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', window.__boot);
+} else {
+  window.__boot();
+}
 
 console.log('[core] loaded');
 })();
