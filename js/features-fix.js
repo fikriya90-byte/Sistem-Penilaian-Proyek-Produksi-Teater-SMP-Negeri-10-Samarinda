@@ -1,15 +1,23 @@
 /* ============================================================
-   SP-PPT features-fix.js — v3.0 ALL-IN-ONE FIX
-   Berisi:
-   A. Alias fungsi hilang (15 fungsi) → semua tombol berfungsi
-   B. Fix bug: tandaiTugasSelesai (u().name undefined)
-   C. Keuangan REAL: RAB, Realisasi, Saldo, Export Excel
-   D. Kas Kelas: config, mark paid, reminder
-   E. Peminjaman Barang + foto
-   F. Backup & Restore (export/import JSON)
-   G. Analitik Guru (distribusi nilai, deteksi siswa bermasalah)
-   H. Print Rapor (per siswa + per kelas)
-   I. Log WA + Dashboard Pesan + Activity Feed Modal
+   SP-PPT features-fix.js — v4.0 FINAL ALL-IN-ONE
+   Berisi SEMUA perbaikan + fitur baru untuk app.js v16:
+   
+   A. Alias fungsi hilang (semua tombol berfungsi)
+   B. Fix bug tandaiTugasSelesai
+   C. Keuangan Real (RAB + Realisasi + Saldo + Export)
+   D. Kas Kelas (config, mark paid, reminder)
+   E. Peminjaman Barang
+   F. Backup & Restore JSON
+   G. Analitik Guru
+   H. Print Rapor (kelas + per siswa)
+   I. Log WA + Dashboard Pesan + Activity Feed
+   J. Absensi Hari Ini + Rubrik + Deadline + Tugas Saya
+   K. Koordinasi Fallback
+   L. Handler data-fx
+   M. Menu Global (openSiswaMenu/openGuruMenu/openAdminMenu)
+   N. Alias tambahan
+   O. Handler data-action fallback
+   
    Load PALING AKHIR di index.html
    ============================================================ */
 (function(){
@@ -19,7 +27,9 @@ if (!window.DB || typeof window.ico !== 'function'){
   console.error('[features-fix] app.js belum siap'); return;
 }
 
-/* ========== HELPERS ========== */
+/* ============================================================
+   HELPERS
+   ============================================================ */
 function ic(n,s){ return window.ico ? window.ico(n,s) : ''; }
 function esc(s){ return window.esc ? window.esc(s) : String(s==null?'':s); }
 function uid(){ return window.uid ? window.uid() : ('fx_'+Date.now().toString(36)+Math.random().toString(36).substr(2,5)); }
@@ -47,8 +57,6 @@ function K(cid, name){ return 'sppt_'+name+'_'+cid; }
 /* ============================================================
    A. ALIAS FUNGSI HILANG
    ============================================================ */
-
-// Toolbar siswa
 window.openArsipNaskah = function(cid){
   if (typeof window.openNaskahList === 'function') return window.openNaskahList(cid || uCid());
   alert('Fitur naskah belum siap');
@@ -74,8 +82,6 @@ window.openGuruPasswordView = function(cid){
   if (typeof window.lihatPassword === 'function') return window.lihatPassword(cid);
   alert('Fitur password belum siap');
 };
-
-// Menu & toolbar umum
 window.openCreateMeetingModalFull = function(type){
   type = type || 'rapat';
   var cid = uCid();
@@ -83,15 +89,12 @@ window.openCreateMeetingModalFull = function(type){
   if (typeof window.openMeetingList === 'function') return window.openMeetingList(cid);
   alert('Fitur absensi belum siap');
 };
-
 window.openKoordinasiAntarKelas = function(){
   if (typeof window.openKoordinasi === 'function') return window.openKoordinasi();
   __koordFallback();
 };
-
 window.openEditTeacherModal = window.openEditTeacherModal || window.openEditGuru;
 window.openAddTeacherModal = window.openAddTeacherModal || window.openAddTeacher;
-
 window.openKelolaChecklistFromMenu = function(){
   var cid = window.__currentViewClassId || uCid();
   if (!cid){ alert('Buka kelas dulu'); return; }
@@ -118,7 +121,7 @@ window.tandaiTugasSelesai = function(id){
 };
 
 /* ============================================================
-   C. KEUANGAN REAL — RAB + Realisasi + Saldo
+   C. KEUANGAN REAL
    ============================================================ */
 function getKeuangan(cid){
   var d = safeJSON(safeLS(K(cid,'keuangan')), null);
@@ -321,8 +324,7 @@ window.openKasKelas = function(){
     var paid = [], unpaid = [];
     students.forEach(function(s){
       var list = (data.payments[s.id]||[]);
-      var isPaid = list.length > 0;
-      if (isPaid) paid.push(s); else unpaid.push(s);
+      if (list.length > 0) paid.push(s); else unpaid.push(s);
     });
     var pct = students.length ? Math.round(paid.length/students.length*100) : 0;
 
@@ -551,7 +553,7 @@ window.openBackupRestore = function(){
 
 window.fxDownloadBackup = function(){
   var backup = {
-    version: '3.0',
+    version: '4.0',
     exportedAt: Date.now(),
     exportedBy: u().name,
     classes: window.DB.classes,
@@ -587,31 +589,25 @@ window.fxRestoreBackup = function(){
       var data = JSON.parse(e.target.result);
       if (!data.classes){ alert('File backup tidak valid'); return; }
 
-      // Restore ke Firestore
       var promises = [];
 
-      // Classes
       (data.classes||[]).forEach(function(c){
         promises.push(window.fbSet('classes', c.id, c));
       });
 
-      // Config stages
       if (data.stages){
         promises.push(window.fbSet('config', 'stages', {stages:data.stages}));
       }
 
-      // Checklists
       Object.keys(data.checklists||{}).forEach(function(cid){
         var ch = data.checklists[cid];
         promises.push(window.fbSet('checklists', cid, Object.assign({}, ch, {classId:cid})));
       });
 
-      // Meetings
       Object.keys(data.meetings||{}).forEach(function(mid){
         promises.push(window.fbSet('meetings', mid, data.meetings[mid]));
       });
 
-      // Evaluations
       Object.keys(data.evaluations||{}).forEach(function(cid){
         var byTarget = data.evaluations[cid]||{};
         Object.keys(byTarget).forEach(function(tid){
@@ -620,12 +616,10 @@ window.fxRestoreBackup = function(){
         });
       });
 
-      // Deadlines
       Object.keys(data.deadlines||{}).forEach(function(cid){
         promises.push(window.fbSet('deadlines', cid, Object.assign({}, data.deadlines[cid], {classId:cid})));
       });
 
-      // ActiveStages
       Object.keys(data.activeStages||{}).forEach(function(cid){
         promises.push(window.fbSet('activeStages', cid, Object.assign({}, data.activeStages[cid], {classId:cid})));
       });
@@ -653,11 +647,9 @@ window.openAnalitikGuru = function(cid){
   var students = c.students || [];
   if (!students.length){ alert('Belum ada siswa'); return; }
 
-  var stages = window.getActiveStages ? window.getActiveStages(cid) : [];
   var h = '<div class="alert alert-info">'+ic('chart')+
     '<div><b>Analitik Kelas</b> — '+esc(c.name)+'</div></div>';
 
-  // Hitung final score tiap siswa
   var scored = students.map(function(s){
     return { s:s, score: window.calcFinalScore ? window.calcFinalScore(cid, s.id) : 0 };
   });
@@ -669,7 +661,6 @@ window.openAnalitikGuru = function(cid){
     return;
   }
 
-  // Distribusi nilai
   var buckets = { '4.0-3.5':[], '3.5-3.0':[], '3.0-2.5':[], '2.5-2.0':[], '2.0-0':[] };
   valid.forEach(function(x){
     if (x.score >= 3.5) buckets['4.0-3.5'].push(x);
@@ -690,7 +681,6 @@ window.openAnalitikGuru = function(cid){
     '<div class="card" style="border-left:4px solid var(--info);"><div style="font-size:11.5px;color:var(--text-muted);">Sudah Dinilai</div><div style="font-size:22px;font-weight:800;color:var(--info);">'+valid.length+'/'+students.length+'</div></div>'+
     '</div>';
 
-  // Chart distribusi
   h += '<div class="card"><h3>'+ic('chart')+' Distribusi Nilai</h3>';
   var colors = { '4.0-3.5':'var(--success)', '3.5-3.0':'var(--info)', '3.0-2.5':'var(--primary)', '2.5-2.0':'var(--warning)', '2.0-0':'var(--danger)' };
   Object.keys(buckets).forEach(function(range){
@@ -705,7 +695,6 @@ window.openAnalitikGuru = function(cid){
   });
   h += '</div>';
 
-  // Siswa di bawah KKM
   var low = valid.filter(function(x){ return x.score < 2.5; });
   if (low.length){
     h += '<div class="card" style="border-left:4px solid var(--danger);"><h3>'+ic('warning')+' Siswa Perlu Perhatian (nilai &lt; 2.5)</h3>';
@@ -719,7 +708,6 @@ window.openAnalitikGuru = function(cid){
     h += '</div>';
   }
 
-  // Leaderboard top 5
   var top5 = valid.slice().sort(function(a,b){ return b.score-a.score; }).slice(0,5);
   h += '<div class="card" style="border-left:4px solid var(--warning);"><h3>'+ic('star')+' Top 5 Siswa</h3>';
   top5.forEach(function(x, i){
@@ -937,7 +925,7 @@ window.openActivityFeedModal = function(){
 };
 
 /* ============================================================
-   J. ABSENSI HARI INI + RUBRIK + DEADLINE (fallback)
+   J. ABSENSI HARI INI + RUBRIK + DEADLINE + TUGAS SAYA
    ============================================================ */
 window.openAbsensiHariIni = function(){
   var cid = uCid(); if (!cid) return;
@@ -1120,8 +1108,178 @@ document.addEventListener('click', function(e){
   } catch(err){ console.error('[features-fix]', fn, err); alert('Gagal: '+err.message); }
 }, true);
 
-console.log('[features-fix] v3.0 ALL-IN-ONE loaded');
+/* ============================================================
+   M. MENU GLOBAL (openSiswaMenu / openGuruMenu / openAdminMenu)
+   FIX: app.js v16 taruh fungsi ini di dalam IIFE → tidak bisa
+        dipanggil dari onclick="openSiswaMenu()"
+   ============================================================ */
+window.openSiswaMenu = function(){
+  var role = uRole();
+  var h = '<div class="alert alert-info">'+ic('gear')+'<div><b>Menu Siswa</b></div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;">';
+
+  var items = [
+    { i:'clipboard',    l:'Tugas Saya',         a:'openTugasSaya' },
+    { i:'users',        l:'Tim Saya',           a:'openTimSaya' },
+    { i:'checkSquare',  l:'Checklist Saya',     a:'openChecklistPribadi' },
+    { i:'edit',         l:'Beri Nilai Rekan',   a:'openPenilaianSiswaDashboard' },
+    { i:'award',        l:'Kerabat Kerja',      a:'openStrukturKerabatKerja' },
+    { i:'fileText',     l:'Dokumen Saya',       a:'openDokumenSaya' },
+    { i:'book',         l:'Arsip Naskah',       a:'openNaskahList' },
+    { i:'calendar',     l:'Absensi',            a:'openMeetingList' },
+    { i:'calendar',     l:'Absensi Hari Ini',   a:'openAbsensiHariIni' },
+    { i:'target',       l:'Rubrik Penilaian',   a:'openRubrikPenilaian' },
+    { i:'clock',        l:'Deadline Saya',      a:'openDeadlineList' },
+    { i:'activity',     l:'Aktivitas Tim',      a:'openActivityFeedModal' },
+    { i:'chart',        l:'Progres Divisi',     a:'openDivisionProgressSelf' },
+    { i:'image',        l:'Kalender Konten',    a:'openKalenderKonten' },
+    { i:'clock',        l:'Jadwal Latihan',     a:'openJadwalLatihan' },
+    { i:'warning',      l:'Aduan',              a:'openAduanSiswa' },
+    { i:'messageCircle',l:'Koordinasi',         a:'openKoordinasiAntarKelas' }
+  ];
+
+  if (['pimpinan_produksi','sutradara','koor_musik','koor_perlengkapan'].indexOf(role)>=0)
+    items.push({ i:'briefcase', l:'Booking Alat Musik', a:'openBookingAlat' });
+  if (['koor_perlengkapan','anggota_perlengkapan'].indexOf(role)>=0)
+    items.push({ i:'briefcase', l:'Peminjaman Barang', a:'openPeminjamanBarang' });
+  if (['pimpinan_produksi','sekretaris','sutradara','asisten_sutradara'].indexOf(role)>=0)
+    items.push({ i:'calendar', l:'Master Schedule', a:'openMasterSchedule' });
+  if (role === 'bendahara'){
+    items.push({ i:'chart',     l:'Keuangan & RAB', a:'openKeuangan' });
+    items.push({ i:'briefcase', l:'Kas Kelas',      a:'openKasKelas' });
+  }
+  if (['pimpinan_produksi','sekretaris','sutradara'].indexOf(role)>=0)
+    items.push({ i:'layers', l:'Sistem Tahapan', a:'openSistemTahapan' });
+  if (role.indexOf('koor_') === 0){
+    items.push({ i:'send',  l:'Beri Tugas ke Anggota', a:'openKoorChecklistModal' });
+    items.push({ i:'clock', l:'Deadline ke Anggota',    a:'openKoorDeadlineModal' });
+  }
+
+  items.push({ i:'key', l:'Ubah Password', a:'openChangePassword' });
+  items.push({ i:'out', l:'Keluar',        a:'logout' });
+
+  items.forEach(function(it){
+    h += '<button class="btn" style="justify-content:flex-start;text-align:left;width:100%;" '+
+      'onclick="closeModal();setTimeout(function(){window.__menuCall(\''+it.a+'\')},150)">'+
+      ic(it.i) + ' ' + esc(it.l) + '</button>';
+  });
+  h += '</div>';
+  openModal('Menu', h);
+};
+
+window.openGuruMenu = function(){
+  var h = '<div class="alert alert-info">'+ic('gear')+'<div><b>Menu Guru</b></div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;">';
+  [
+    { i:'chart',         l:'Analitik Kelas',   a:'openAnalitikGuru' },
+    { i:'fileText',      l:'Print Rapor',      a:'openPrintRapor' },
+    { i:'download',      l:'Backup & Restore', a:'openBackupRestore' },
+    { i:'user',          l:'Profil Saya',      a:'openGuruProfile' },
+    { i:'fileText',      l:'Kelola Template',  a:'openKelolaTemplate' },
+    { i:'folder',        l:'Dokumen Siswa',    a:'openDokumenSiswa' },
+    { i:'activity',      l:'Log Aktivitas',    a:'openActivityLog' },
+    { i:'messageCircle', l:'Log WhatsApp',     a:'openLogWA' },
+    { i:'messageCircle', l:'Dashboard Pesan',  a:'openDashboardPesan' },
+    { i:'warning',       l:'Aduan Siswa',      a:'openAduanGuru' },
+    { i:'key',           l:'Ubah Password',    a:'openChangePassword' },
+    { i:'out',           l:'Keluar',           a:'logout' }
+  ].forEach(function(it){
+    h += '<button class="btn" style="justify-content:flex-start;text-align:left;width:100%;" '+
+      'onclick="closeModal();setTimeout(function(){window.__menuCall(\''+it.a+'\')},150)">'+
+      ic(it.i) + ' ' + esc(it.l) + '</button>';
+  });
+  h += '</div>';
+  openModal('Menu Guru', h);
+};
+
+window.openAdminMenu = function(){
+  var h = '<div class="alert alert-info">'+ic('gear')+'<div><b>Menu Admin</b></div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;">';
+  [
+    { i:'personPlus', l:'Tambah Guru',     a:'openAddTeacher' },
+    { i:'activity',   l:'Log Aktivitas',   a:'openActivityLog' },
+    { i:'download',   l:'Backup & Restore',a:'openBackupRestore' },
+    { i:'key',        l:'Ubah Password',   a:'openChangePassword' },
+    { i:'out',        l:'Keluar',          a:'logout' }
+  ].forEach(function(it){
+    h += '<button class="btn" style="justify-content:flex-start;text-align:left;width:100%;" '+
+      'onclick="closeModal();setTimeout(function(){window.__menuCall(\''+it.a+'\')},150)">'+
+      ic(it.i) + ' ' + esc(it.l) + '</button>';
+  });
+  h += '</div>';
+  openModal('Menu Admin', h);
+};
+
+window.openMainMenu = function(){
+  var t = uType();
+  if (t === 'admin') return window.openAdminMenu();
+  if (t === 'guru')  return window.openGuruMenu();
+  return window.openSiswaMenu();
+};
+
+window.__menuCall = function(name){
+  var fn = window[name];
+  if (typeof fn !== 'function'){
+    console.warn('[menu-call] Missing:', name);
+    alert('Fitur "' + name + '" belum tersedia.');
+    return;
+  }
+  try { fn(); }
+  catch(e){ console.error('[menu-call]', name, e); alert('Error: ' + e.message); }
+};
+
+/* ============================================================
+   N. ALIAS TAMBAHAN
+   ============================================================ */
+if (typeof window.openMasterScheduleMingguan !== 'function')
+  window.openMasterScheduleMingguan = function(cid){
+    if (typeof window.openMasterSchedule === 'function') return window.openMasterSchedule(cid);
+    alert('Master Schedule belum siap.');
+  };
+
+if (typeof window.openKoorChecklistModal !== 'function')
+  window.openKoorChecklistModal = function(){
+    var cid = uCid();
+    if (!cid){ alert('Kelas tidak ditemukan'); return; }
+    if (typeof window.openChecklistManage === 'function') return window.openChecklistManage(cid);
+    if (typeof window.openChecklistTim === 'function') return window.openChecklistTim(cid);
+    alert('Fitur checklist belum siap.');
+  };
+
+if (typeof window.openKoorDeadlineModal !== 'function')
+  window.openKoorDeadlineModal = function(){
+    var cid = uCid();
+    if (!cid){ alert('Kelas tidak ditemukan'); return; }
+    if (typeof window.openBeriTugas === 'function') return window.openBeriTugas(cid);
+    alert('Fitur deadline belum siap.');
+  };
+
+/* ============================================================
+   O. HANDLER data-action FALLBACK
+   ============================================================ */
+document.addEventListener('click', function(e){
+  var el = e.target.closest('[data-action]');
+  if (!el) return;
+  var fn = el.getAttribute('data-action');
+  if (!fn) return;
+  if (typeof window[fn] === 'function') return;
+  var arg = el.getAttribute('data-arg');
+  e.preventDefault();
+  if (el.hasAttribute('data-close-first')){
+    closeModal();
+    setTimeout(function(){ window.__menuCall(fn); }, 150);
+  } else {
+    window.__menuCall(fn);
+  }
+}, true);
+
+/* ============================================================
+   LOG
+   ============================================================ */
+console.log('[features-fix] v4.0 FINAL loaded');
 console.log('  → Alias fungsi: 15');
 console.log('  → Fitur baru: Keuangan, Kas, Peminjaman, Backup, Analitik, Print Rapor');
+console.log('  → Menu global: openSiswaMenu, openGuruMenu, openAdminMenu');
+console.log('  → Handler: data-fx + data-action');
 
 })();
