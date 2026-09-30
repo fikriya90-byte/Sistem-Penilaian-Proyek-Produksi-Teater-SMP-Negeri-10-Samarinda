@@ -1,0 +1,152 @@
+/* ============================================================
+   RESPONSIVE — Mobile & Tablet
+   ============================================================ */
+
+/* TABLET */
+@media (max-width:900px){
+  .app-main{padding:16px}
+  .fab{width:56px;height:56px}
+  .fab-panduan{bottom:16px;right:16px}
+  .fab-aduan{bottom:84px;right:16px}
+  .fab-kerabat{bottom:152px;right:16px}
+}
+
+/* MOBILE */
+@media (max-width:640px){
+  body{font-size:13.5px}
+  .auth-box{padding:24px 20px}
+  .brand-logos img{height:52px}
+  .brand h1{font-size:16px}
+
+  .app-header{
+    padding:12px 14px;flex-direction:column;
+    align-items:stretch;gap:10px;
+  }
+  .header-brand img{height:38px}
+  .header-brand h2{font-size:14px}
+  .header-brand p{font-size:11px}
+  .header-actions{justify-content:flex-end}
+
+  .app-main{padding:12px}
+  .user-info{font-size:12px;padding:10px 12px}
+  .card{padding:14px}
+  .card h3{font-size:14px}
+
+  .modal-content{max-height:96vh;border-radius:12px}
+  .modal-header{padding:14px 16px}
+  .modal-body{padding:16px}
+
+  .notif-panel{width:100vw;border-left:none}
+
+  .fab{width:52px;height:52px;font-size:20px}
+  .fab-panduan{bottom:16px;right:12px}
+  .fab-aduan{bottom:76px;right:12px}
+  .fab-kerabat{bottom:136px;right:12px}
+
+  .grid{grid-template-columns:1fr}
+  .btn-block-mobile{width:100%}
+}
+
+/* TABLET & MOBILE — FIX TIMELINE SCROLL */
+@media (max-width:900px){
+  /* Prevent nested scroll conflict */
+  .timeline-track,
+  .carousel-track{
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    scroll-snap-type:x proximity;
+    touch-action:pan-x pan-y;
+  }
+  .timeline-wrap{
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-x:contain;
+    touch-action:pan-x;
+    -webkit-overflow-scrolling:touch;
+    scroll-behavior:smooth;
+    cursor:grab;
+    padding-bottom:14px;
+  }
+  .timeline-wrap:active{cursor:grabbing}
+}
+
+/* SMALL MOBILE — Vertical fallback */
+@media (max-width:480px){
+  .timeline-wrap{display:none!important}
+  .timeline-vertical{
+    display:flex!important;
+    flex-direction:column;gap:10px}
+  .tv-item{
+    padding:12px 14px;background:var(--card);
+    border-radius:10px;border-left:4px solid var(--primary);
+    box-shadow:var(--shadow-sm);
+  }
+  .tv-month{
+    font-size:13px;font-weight:800;color:var(--primary);
+    margin-bottom:8px;text-transform:uppercase;
+  }
+  .tv-agenda{
+    padding:6px 0;font-size:12.5px;
+    border-bottom:1px dashed var(--border);
+  }
+  .tv-agenda:last-child{border-bottom:none}
+  .tv-title{font-weight:700;color:var(--text-strong)}
+  .tv-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+}
+
+/* TIMELINE NAV (all screens) */
+.timeline-nav{
+  display:flex;justify-content:center;align-items:center;
+  gap:10px;padding:8px 0;
+}
+.timeline-nav button{
+  width:42px;height:42px;border-radius:50%;
+  border:2px solid var(--primary);background:var(--card);
+  color:var(--primary);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:var(--transition);padding:0;
+}
+.timeline-nav button:hover:not(:disabled){
+  background:var(--primary);color:#fff;transform:scale(1.05);
+}
+.timeline-nav button:disabled{opacity:.3;cursor:not-allowed}
+.timeline-nav button svg{width:18px;height:18px;pointer-events:none}
+
+/* Carousel */
+.carousel-wrap{
+  margin:20px 0;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  overflow:hidden;
+}
+.carousel-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap;
+}
+.carousel-header h3{font-size:15px;font-weight:800;margin:0}
+.carousel-tabs{
+  display:flex;gap:4px;background:var(--surface);
+  padding:3px;border-radius:8px;overflow-x:auto;
+}
+.carousel-tab{
+  padding:6px 12px;font-size:12px;font-weight:600;
+  background:none;border:none;font-family:inherit;
+  color:var(--text-muted);border-radius:6px;
+  cursor:pointer;white-space:nowrap;
+}
+.carousel-tab.active{
+  background:var(--card);color:var(--primary);
+  box-shadow:var(--shadow-sm);
+}
+.carousel-track{
+  display:flex;overflow-x:auto;
+  scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  overscroll-behavior-x:contain;
+}
+.carousel-track::-webkit-scrollbar{display:none}
+.carousel-slide{
+  flex:0 0 100%;scroll-snap-align:start;min-width:100%;
+  padding:16px;box-sizing:border-box;
+}
