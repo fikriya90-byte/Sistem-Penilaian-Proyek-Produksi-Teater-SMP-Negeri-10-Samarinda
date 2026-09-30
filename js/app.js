@@ -1074,6 +1074,8 @@ function openGuruMenu(){
     '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openAduanGuru()">'+ic('messageCircle')+' Aduan Siswa</button>' +
     '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openLogWA()">'+ic('messageCircle')+' Log WhatsApp</button>' +
     '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openDashboardPesan()">'+ic('send')+' Dashboard Pesan</button>' +
+    '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openImportSiswa(window.__currentViewClassId)">'+ic('upload')+' Import Siswa Excel</button>' +
+    '<button class="btn" style="justify-content:flex-start;" onclick="closeModal();openStrukturKerabatKerja(window.__currentViewClassId)">'+ic('award')+' Struktur Kerabat Kerja</button>' +
     '</div>');
 }
 
