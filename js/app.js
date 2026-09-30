@@ -785,7 +785,8 @@ function renderGuruDash(){
     });
     h += '</div>';
   }
-
+  h += '<h3 style="margin:18px 0 10px;font-size:14.5px;font-weight:700;">' + ic('calendar') + ' Master Timeline Produksi</h3>';
+  h += '<div id="timeline-dash-guru"></div>';
   h += renderActivityFeed();
 
   document.getElementById('main-content').innerHTML = h;
@@ -793,7 +794,16 @@ function renderGuruDash(){
   updateBadge();
 }
 window.renderGuruDash = renderGuruDash;
-
+  setTimeout(function(){
+    if (typeof window.renderMasterTimelineForDashboard === 'function'){
+      var cid = window.__currentViewClassId;
+      if (!cid){
+        var mine = myClasses();
+        if (mine.length > 0) cid = mine[0].id;
+      }
+      if (cid) window.renderMasterTimelineForDashboard(cid, 'timeline-dash-guru');
+    }
+  }, 100);
 function renderActivityFeed(){
   var logs = (DB.activityLogs||[]).slice(0, 10);
   if (logs.length === 0) return '';
@@ -856,7 +866,9 @@ function renderSiswaDash(){
     });
     h += '</div>';
   }
-
+  // ===== MASTER TIMELINE (dari Pimpro/Sekretaris) =====
+  h += '<h3 style="margin:16px 0 10px;font-size:14.5px;font-weight:700;">' + ic('calendar') + ' Master Timeline Produksi</h3>';
+  h += '<div id="timeline-dash-siswa"></div>';
   var tasks = getNotifs().filter(function(n){ return n.type === 'tugas'; }).slice(0, 5);
   h += '<h3 style="margin:16px 0 10px;font-size:14.5px;font-weight:700;">' + ic('clock') + ' Deadline & Tugas</h3>';
   if (tasks.length === 0){
@@ -866,7 +878,12 @@ function renderSiswaDash(){
       h += '<div class="welcome-item urgent"><div style="flex:1;"><b>' + esc(n.title) + '</b><br><small>' + esc(n.fromName||'') + ' &middot; ' + fmtDate(n.createdAt) + '</small></div></div>';
     });
   }
-
+  // Render Master Timeline
+  setTimeout(function(){
+    if (typeof window.renderMasterTimelineForDashboard === 'function'){
+      window.renderMasterTimelineForDashboard(c.id, 'timeline-dash-siswa');
+    }
+  }, 100);
   document.getElementById('main-content').innerHTML = h;
   if (window.hydrateIcons) window.hydrateIcons();
   updateBadge();
@@ -1271,27 +1288,47 @@ function openGuruMenu(){
 
 function openSiswaMenu(){
   var role = window.currentUser.role;
+
+  // Daftar menu — pakai cek keberadaan fungsi
   var items = [
-    {i:'checkSquare', l:'Checklist Saya', a:'openChecklistPribadi'},
-    {i:'users', l:'Checklist Tim', a:'openChecklistTim'},
-    {i:'edit', l:'Beri Nilai Rekan', a:'openPenilaianSiswaDashboard'},
-    {i:'award', l:'Kerabat Kerja', a:'openStrukturKerabatKerja'},
-    {i:'fileText', l:'Dokumen Saya', a:'openDokumenSaya'},
-    {i:'book', l:'Arsip Naskah', a:'openNaskahList'},
-    {i:'calendar', l:'Absensi', a:'openMeetingList'},
-    {i:'briefcase', l:'Booking Alat Musik', a:'openBookingAlat'},
-    {i:'key', l:'Ubah Password', a:'openChangePassword'},
-    {i:'out', l:'Keluar', a:'logout'}
+    { i:'checkSquare', l:'Checklist Pribadi', f:'openChecklistPribadi' },
+    { i:'users',       l:'Checklist Tim',     f:'openChecklistTim' },
+    { i:'edit',        l:'Beri Nilai Rekan',  f:'openPenilaianSiswaDashboard' },
+    { i:'award',       l:'Kerabat Kerja',     f:'openStrukturKerabatKerja' },
+    { i:'fileText',    l:'Dokumen Saya',      f:'openDokumenSaya' },
+    { i:'book',        l:'Arsip Naskah',      f:'openNaskahList' },
+    { i:'calendar',    l:'Absensi',           f:'openMeetingList' },
+    { i:'briefcase',   l:'Booking Alat Musik',f:'openBookingAlat' },
+    { i:'calendar',    l:'Master Schedule',   f:'openMasterSchedule' },
+    { i:'image',       l:'Kalender Konten',   f:'openKalenderKonten' },
+    { i:'chart',       l:'Keuangan',          f:'openKeuangan' },
+    { i:'key',         l:'Ubah Password',     f:'openChangePassword' },
+    { i:'out',         l:'Keluar',            f:'logout' }
   ];
 
   var h = '<div style="display:flex;flex-direction:column;gap:8px;">';
   items.forEach(function(it){
-    h += '<button class="btn" style="justify-content:flex-start;text-align:left;" onclick="closeModal();(window.' + it.a + '||function(){alert(\'Fitur belum tersedia\')})()">' +
+    h += '<button class="btn" style="justify-content:flex-start;text-align:left;" ' +
+      'onclick="closeModal();window.__menuAction(\'' + it.f + '\')">' +
       ic(it.i) + ' ' + it.l + '</button>';
   });
   h += '</div>';
   openModal('Menu Siswa', h);
 }
+
+// Helper untuk panggil fungsi menu — cek dulu ada atau tidak
+window.__menuAction = function(fnName){
+  if (typeof window[fnName] === 'function'){
+    try {
+      window[fnName]();
+    } catch(e){
+      console.error('[menu]', fnName, e);
+      alert('Gagal membuka fitur: ' + e.message);
+    }
+  } else {
+    alert('Fitur "' + fnName + '" belum tersedia.\n\nSilakan update aplikasi atau hubungi guru.');
+  }
+};
 
 function openAdminMenu(){
   openModal('Menu Admin',
@@ -1532,3 +1569,131 @@ setTimeout(window.__forceHideLoading, 3500);
 console.log('[app.js] v14.0 CLEAN loaded');
 
 })();
+/* ============================================================
+   TIMELINE UNTUK DASHBOARD — Baca dari Master Schedule
+   ============================================================ */
+window.renderMasterTimelineForDashboard = function(cid, targetElementId){
+  var el = document.getElementById(targetElementId);
+  if (!el) return;
+
+  var c = findClass(cid);
+  if (!c){ el.innerHTML = ''; return; }
+
+  // Ambil data dari berbagai sumber
+  var ms = (window.getMasterSchedule ? window.getMasterSchedule(cid) : null) || {items: []};
+  var jadwalLatihan = (window.getJadwalLatihanData ? window.getJadwalLatihanData(cid) : null) || {items: []};
+  var konten = (window.getKalenderKonten ? window.getKalenderKonten(cid) : null) || {items: []};
+  var meetings = Object.values(window.DB.meetings || {}).filter(function(m){ return m.classId === cid; });
+
+  var totalItems = (ms.items||[]).length + (jadwalLatihan.items||[]).length + (konten.items||[]).length + meetings.length;
+
+  if (totalItems === 0){
+    el.innerHTML = '<div class="alert alert-info">' + ic('info') + '<div><b>Master Timeline belum tersedia</b><br><small>Timeline akan muncul setelah Pimpinan Produksi / Sekretaris mengisi agenda.</small></div></div>';
+    return;
+  }
+
+  // Sort semua event
+  var events = [];
+
+  // Master Schedule (bulan/minggu/hari)
+  (ms.items || []).forEach(function(it){
+    var periode = { '2025-10': 'Okt 2025', '2025-11': 'Nov 2025', '2025-12': 'Des 2025', '2026-01': 'Jan 2026' }[it.monthKey] || it.monthKey;
+    events.push({
+      tanggal: periode + ' — Minggu ' + it.weekNumber + ', H' + it.day,
+      dateKey: it.monthKey + '-' + String(it.weekNumber).padStart(2,'0') + '-' + String(it.day).padStart(2,'0'),
+      title: it.title,
+      pic: it.pic,
+      desc: it.desc,
+      type: 'Agenda',
+      icon: 'calendar',
+      color: '#2563eb'
+    });
+  });
+
+  // Jadwal Latihan
+  (jadwalLatihan.items || []).forEach(function(it){
+    events.push({
+      tanggal: fmtDateShort(it.date) + (it.time ? ' ' + it.time : ''),
+      dateKey: it.date || '',
+      title: it.title,
+      pic: it.createdBy,
+      desc: it.adegan ? 'Adegan: ' + it.adegan : (it.note || ''),
+      type: 'Latihan',
+      icon: 'target',
+      color: '#10b981'
+    });
+  });
+
+  // Kalender Konten
+  (konten.items || []).forEach(function(it){
+    events.push({
+      tanggal: fmtDateShort(it.date),
+      dateKey: it.date || '',
+      title: it.title,
+      pic: it.pic,
+      desc: it.platform + ' — ' + it.type,
+      type: 'Konten',
+      icon: 'image',
+      color: '#0ea5e9'
+    });
+  });
+
+  // Meetings
+  meetings.forEach(function(m){
+    events.push({
+      tanggal: fmtDateShort(m.date) + (m.openTime ? ' ' + m.openTime : ''),
+      dateKey: m.date || '',
+      title: m.title,
+      pic: m.createdBy,
+      desc: 'Jenis: ' + (m.type || '-'),
+      type: 'Absensi',
+      icon: 'clipboard',
+      color: '#f59e0b'
+    });
+  });
+
+  // Sort by dateKey
+  events.sort(function(a, b){ return (a.dateKey||'').localeCompare(b.dateKey||''); });
+
+  // Render
+  var h = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">';
+  h += '<div style="font-size:12.5px;color:var(--text-muted);">' + events.length + ' agenda terurut</div>';
+  h += '<div style="display:flex;gap:4px;flex-wrap:wrap;">' +
+    '<span class="badge" style="background:rgba(37,99,235,.15);color:#2563eb;">' + ic('calendar','sm') + ' Agenda</span>' +
+    '<span class="badge" style="background:rgba(16,185,129,.15);color:#10b981;">' + ic('target','sm') + ' Latihan</span>' +
+    '<span class="badge" style="background:rgba(14,165,233,.15);color:#0ea5e9;">' + ic('image','sm') + ' Konten</span>' +
+    '<span class="badge" style="background:rgba(245,158,11,.15);color:#f59e0b;">' + ic('clipboard','sm') + ' Absensi</span>' +
+    '</div>';
+  h += '</div>';
+
+  // Timeline list
+  h += '<div style="position:relative;padding-left:36px;">';
+  h += '<div style="position:absolute;left:14px;top:8px;bottom:8px;width:2px;background:var(--border);"></div>';
+
+  events.slice(0, 15).forEach(function(e){
+    h += '<div style="position:relative;margin-bottom:16px;">' +
+      '<div style="position:absolute;left:-30px;top:2px;width:32px;height:32px;border-radius:50%;background:' + e.color + ';color:#fff;display:flex;align-items:center;justify-content:center;border:3px solid var(--card);z-index:1;">' +
+        ic(e.icon, 14) +
+      '</div>' +
+      '<div style="background:var(--surface);border-radius:8px;padding:12px;border-left:3px solid ' + e.color + ';">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+          '<div style="font-size:11.5px;font-weight:700;color:' + e.color + ';">' + e.type.toUpperCase() + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' + esc(e.tanggal) + '</div>' +
+        '</div>' +
+        '<div style="font-weight:700;font-size:13px;color:var(--text-strong);margin-bottom:4px;">' + esc(e.title) + '</div>' +
+        (e.pic ? '<div style="font-size:11.5px;color:var(--text-muted);">PIC: ' + esc(e.pic) + '</div>' : '') +
+        (e.desc ? '<div style="font-size:12px;color:var(--text);margin-top:4px;">' + esc(e.desc) + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  });
+
+  if (events.length > 15){
+    h += '<div style="text-align:center;font-size:12px;color:var(--text-muted);padding:8px;">+' + (events.length - 15) + ' agenda lainnya</div>';
+  }
+
+  h += '</div></div>';
+
+  el.innerHTML = h;
+  if (window.hydrateIcons) window.hydrateIcons(el);
+};
