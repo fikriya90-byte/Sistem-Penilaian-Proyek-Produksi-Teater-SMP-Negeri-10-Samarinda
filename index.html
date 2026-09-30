@@ -428,22 +428,16 @@ window.hydrateIcons = function(root){
       <button type="button" class="tab" onclick="switchLoginTab('siswa')" id="tab-login-siswa">Siswa</button>
       <button type="button" class="tab" onclick="switchLoginTab('admin')" id="tab-login-admin">Admin</button>
     </nav>
-    <form id="form-login-guru" onsubmit="event.preventDefault();loginGuru()">
-       <div class="divider-text" style="margin-top:14px;">
-  <button type="button" class="link" onclick="openForgotPassword('guru')">Lupa Password?</button>
-</div>
-      <div class="form-group"><label>Email Guru</label><input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" autocomplete="username"></div>
+    <<form id="form-login-guru" onsubmit="event.preventDefault();loginGuru()">
+  <div class="form-group"><label>Email Guru</label><input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" autocomplete="username"></div>
       <div class="form-group pw-toggle"><label>Password</label><input type="password" id="guru-password" placeholder="Password" autocomplete="current-password"><button class="toggle-btn" type="button" onclick="togglePw('guru-password',this)"><span data-ico="eye" data-size="16"></span></button></div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Guru</button>
        <div class="divider-text">
   <button type="button" class="link" onclick="openForgotPassword('guru')">Lupa Password?</button>
 </div>
     </form>
-    <form id="form-login-siswa" class="hidden" onsubmit="event.preventDefault();loginSiswa()">
-       <div class="divider-text" style="margin-top:14px;">
-  <button type="button" class="link" onclick="openForgotPassword('siswa')">Lupa Password?</button>
-</div>
-      <div class="form-group"><label>Pilih Kelas</label><select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select></div>
+   <form id="form-login-siswa" class="hidden" onsubmit="event.preventDefault();loginSiswa()">
+  <div class="form-group"><label>Pilih Kelas</label><select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select></div>
       <div class="form-group"><label>Email atau No. WhatsApp</label><input type="text" id="siswa-email" placeholder="email atau 08123456789" autocomplete="username"></div>
       <div class="form-group pw-toggle"><label>Password</label><input type="password" id="siswa-password" placeholder="Password" autocomplete="current-password"><button class="toggle-btn" type="button" onclick="togglePw('siswa-password',this)"><span data-ico="eye" data-size="16"></span></button></div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Siswa</button>
