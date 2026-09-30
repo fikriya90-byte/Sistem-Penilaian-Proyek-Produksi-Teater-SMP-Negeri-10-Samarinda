@@ -1,28 +1,15 @@
 /* ============================================================
-   SP-PPT features-struktur.js — v2.0 FULL
-   Fitur:
-   1. Struktur Kerabat Kerja berbasis JOBDESK (bukan divisi)
-   2. Upload Logo Kerabat Kerja
-   3. Floating Button
-   4. Auto-fill dari data siswa
-   5. Export Excel
-   6. Import siswa Excel (placeholder, aktifkan di M8)
+   SP-PPT features-struktur.js — v3.0 (dengan foto profil)
+   Fitur: Struktur Kerabat Kerja berbasis jobdesk + foto profil
    ============================================================ */
 (function(){
 'use strict';
 
-if (!window.DB || !window.ico){
-  console.warn('[features-struktur] app.js belum di-load.');
-  return;
-}
+if (!window.DB || !window.ico){ console.warn('[features-struktur] app.js belum di-load.'); return; }
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
 function ic(n, s){ return window.ico ? window.ico(n, s) : ''; }
 function esc(s){ return window.esc ? window.esc(s) : String(s==null?'':s); }
 function uid(){ return window.uid ? window.uid() : ('id_'+Date.now().toString(36)); }
-function fmtDate(ts){ return window.fmtDate ? window.fmtDate(ts) : '-'; }
 function fmtDateShort(s){ return window.fmtDateShort ? window.fmtDateShort(s) : '-'; }
 function u(){ return window.currentUser || {}; }
 function uType(){ return String(u().type||'').toLowerCase(); }
@@ -30,7 +17,6 @@ function uRole(){ return String(u().role||'').toLowerCase(); }
 function uCid(){ return u().classId || window.__currentViewClassId || null; }
 function uSid(){ return u().studentId || null; }
 function isGuru(){ return uType()==='guru' || uType()==='admin'; }
-function isSiswa(){ return uType()==='siswa'; }
 function openModal(t, b){ if (window.openModal) window.openModal(t, b); }
 function closeModal(){ if (window.closeModal) window.closeModal(); }
 function findClass(cid){ return (window.DB.classes||[]).find(function(x){ return x.id === cid; }); }
@@ -38,48 +24,31 @@ function logAct(t, m, k){ if (window.logActivity) window.logActivity(t, m, k); }
 function roleLabel(r){ return (window.ROLES && window.ROLES[r] && window.ROLES[r].label) || r; }
 
 /* ============================================================
-   STRUKTUR HIERARKI BERDASARKAN JOB DESK
-   Level 1: Pengurus Inti (atasan langsung)
-   Level 2: Wakil / Pembantu Pengurus Inti
-   Level 3: Koordinator Divisi
-   Level 4: Anggota
+   HIERARKI JOBDESK
    ============================================================ */
 var JOB_LEVELS = [
-  // ===== LEVEL 1 — PENGURUS INTI =====
   { role:'pimpinan_produksi',  jabatan:'Pimpinan Produksi',            level:1, grup:'PENGURUS INTI',      warna:'#dc2626', icon:'star' },
   { role:'sutradara',          jabatan:'Sutradara',                    level:1, grup:'PENGURUS INTI',      warna:'#dc2626', icon:'star' },
-
-  // ===== LEVEL 2 — WAKIL =====
   { role:'asisten_sutradara',  jabatan:'Asisten Sutradara',            level:2, grup:'PENGURUS INTI',      warna:'#f59e0b', icon:'award' },
   { role:'sekretaris',         jabatan:'Sekretaris',                   level:2, grup:'PENGURUS INTI',      warna:'#f59e0b', icon:'fileText' },
   { role:'bendahara',          jabatan:'Bendahara',                    level:2, grup:'PENGURUS INTI',      warna:'#f59e0b', icon:'chart' },
-
-  // ===== LEVEL 3 — KOORDINATOR DIVISI PRODUKSI =====
-  { role:'koor_publikasi',     jabatan:'Koor. Publikasi & Dokumentasi', level:3, grup:'DIVISI PRODUKSI',   warna:'#2563eb', icon:'image' },
-  { role:'koor_perlengkapan',  jabatan:'Koor. Perlengkapan',            level:3, grup:'DIVISI PRODUKSI',   warna:'#2563eb', icon:'briefcase' },
-  { role:'koor_akomodasi',     jabatan:'Koor. Akomodasi & Transportasi', level:3, grup:'DIVISI PRODUKSI',  warna:'#2563eb', icon:'phone' },
-
-  // ===== LEVEL 3 — KOORDINATOR DIVISI ARTISTIK =====
-  { role:'koor_panggung',      jabatan:'Koor. Tata Pentas & Panggung',  level:3, grup:'DIVISI ARTISTIK',  warna:'#8b5cf6', icon:'layers' },
-  { role:'koor_musik',         jabatan:'Koor. Tata Musik & Suara',      level:3, grup:'DIVISI ARTISTIK',  warna:'#8b5cf6', icon:'star' },
-  { role:'koor_busana',        jabatan:'Koor. Tata Busana',             level:3, grup:'DIVISI ARTISTIK',  warna:'#8b5cf6', icon:'briefcase' },
-  { role:'koor_rias',          jabatan:'Koor. Tata Rias',               level:3, grup:'DIVISI ARTISTIK',  warna:'#8b5cf6', icon:'user' },
-  { role:'koor_cahaya',        jabatan:'Koor. Tata Cahaya',             level:3, grup:'DIVISI ARTISTIK',  warna:'#8b5cf6', icon:'sparkle' },
-
-  // ===== LEVEL 4 — ANGGOTA PRODUKSI =====
-  { role:'anggota_publikasi',     jabatan:'Anggota Publikasi',            level:4, grup:'DIVISI PRODUKSI',  warna:'#0ea5e9', icon:'user' },
-  { role:'anggota_perlengkapan',  jabatan:'Anggota Perlengkapan',         level:4, grup:'DIVISI PRODUKSI',  warna:'#0ea5e9', icon:'user' },
-  { role:'anggota_akomodasi',     jabatan:'Anggota Akomodasi',            level:4, grup:'DIVISI PRODUKSI',  warna:'#0ea5e9', icon:'user' },
-
-  // ===== LEVEL 4 — ANGGOTA ARTISTIK =====
-  { role:'anggota_panggung',      jabatan:'Anggota Tata Pentas',          level:4, grup:'DIVISI ARTISTIK',  warna:'#a855f7', icon:'user' },
-  { role:'anggota_musik',         jabatan:'Anggota Tata Musik',           level:4, grup:'DIVISI ARTISTIK',  warna:'#a855f7', icon:'user' },
-  { role:'anggota_busana',        jabatan:'Anggota Tata Busana',          level:4, grup:'DIVISI ARTISTIK',  warna:'#a855f7', icon:'user' },
-  { role:'anggota_rias',          jabatan:'Anggota Tata Rias',            level:4, grup:'DIVISI ARTISTIK',  warna:'#a855f7', icon:'user' },
-  { role:'anggota_cahaya',        jabatan:'Anggota Tata Cahaya',          level:4, grup:'DIVISI ARTISTIK',  warna:'#a855f7', icon:'user' },
-
-  // ===== PEMERAN (KELOMPOK KHUSUS) =====
-  { role:'pemain',                jabatan:'Pemeran',                      level:3, grup:'PEMERAN',         warna:'#10b981', icon:'star' }
+  { role:'koor_publikasi',     jabatan:'Koor. Publikasi & Dokumentasi',level:3, grup:'DIVISI PRODUKSI',    warna:'#2563eb', icon:'image' },
+  { role:'koor_perlengkapan',  jabatan:'Koor. Perlengkapan',           level:3, grup:'DIVISI PRODUKSI',    warna:'#2563eb', icon:'briefcase' },
+  { role:'koor_akomodasi',     jabatan:'Koor. Akomodasi & Transportasi',level:3,grup:'DIVISI PRODUKSI',   warna:'#2563eb', icon:'phone' },
+  { role:'koor_panggung',      jabatan:'Koor. Tata Pentas & Panggung', level:3, grup:'DIVISI ARTISTIK',    warna:'#8b5cf6', icon:'layers' },
+  { role:'koor_musik',         jabatan:'Koor. Tata Musik & Suara',     level:3, grup:'DIVISI ARTISTIK',    warna:'#8b5cf6', icon:'star' },
+  { role:'koor_busana',        jabatan:'Koor. Tata Busana',            level:3, grup:'DIVISI ARTISTIK',    warna:'#8b5cf6', icon:'briefcase' },
+  { role:'koor_rias',          jabatan:'Koor. Tata Rias',              level:3, grup:'DIVISI ARTISTIK',    warna:'#8b5cf6', icon:'user' },
+  { role:'koor_cahaya',        jabatan:'Koor. Tata Cahaya',            level:3, grup:'DIVISI ARTISTIK',    warna:'#8b5cf6', icon:'sparkle' },
+  { role:'anggota_publikasi',     jabatan:'Anggota Publikasi',         level:4, grup:'DIVISI PRODUKSI',    warna:'#0ea5e9', icon:'user' },
+  { role:'anggota_perlengkapan',  jabatan:'Anggota Perlengkapan',      level:4, grup:'DIVISI PRODUKSI',    warna:'#0ea5e9', icon:'user' },
+  { role:'anggota_akomodasi',     jabatan:'Anggota Akomodasi',         level:4, grup:'DIVISI PRODUKSI',    warna:'#0ea5e9', icon:'user' },
+  { role:'anggota_panggung',      jabatan:'Anggota Tata Pentas',       level:4, grup:'DIVISI ARTISTIK',    warna:'#a855f7', icon:'user' },
+  { role:'anggota_musik',         jabatan:'Anggota Tata Musik',        level:4, grup:'DIVISI ARTISTIK',    warna:'#a855f7', icon:'user' },
+  { role:'anggota_busana',        jabatan:'Anggota Tata Busana',       level:4, grup:'DIVISI ARTISTIK',    warna:'#a855f7', icon:'user' },
+  { role:'anggota_rias',          jabatan:'Anggota Tata Rias',         level:4, grup:'DIVISI ARTISTIK',    warna:'#a855f7', icon:'user' },
+  { role:'anggota_cahaya',        jabatan:'Anggota Tata Cahaya',       level:4, grup:'DIVISI ARTISTIK',    warna:'#a855f7', icon:'user' },
+  { role:'pemain',                jabatan:'Pemeran',                   level:3, grup:'PEMERAN',           warna:'#10b981', icon:'star' }
 ];
 
 function getJobMeta(role){
@@ -90,6 +59,23 @@ function getJobMeta(role){
 }
 window.getStrukturMeta = getJobMeta;
 window.JOB_LEVELS = JOB_LEVELS;
+
+/* ============================================================
+   AVATAR HELPER — foto atau inisial
+   ============================================================ */
+function avatarHTML(s, warna, size){
+  size = size || 36;
+  var initials = esc((s.name||'?').charAt(0).toUpperCase());
+  if (s.foto){
+    return '<img src="' + esc(s.foto) + '" alt="' + esc(s.name||'') + '" ' +
+      'style="width:'+size+'px;height:'+size+'px;border-radius:50%;' +
+      'object-fit:cover;flex-shrink:0;border:2px solid ' + warna + ';">';
+  }
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:' + warna + ';color:#fff;' +
+    'display:flex;align-items:center;justify-content:center;font-weight:800;' +
+    'font-size:'+Math.round(size*0.4)+'px;flex-shrink:0;">' + initials + '</div>';
+}
+window.avatarHTML = avatarHTML;
 
 /* ============================================================
    MODAL STRUKTUR KERABAT KERJA
@@ -107,7 +93,6 @@ window.openStrukturKerabatKerja = function(cid){
   var kerabatLogo = c.kerabatLogo || '';
   var kerabatDesk = c.kerabatDesk || '';
 
-  // Group by grup (PENGURUS INTI, DIVISI PRODUKSI, DIVISI ARTISTIK, PEMERAN)
   var byGrup = {};
   JOB_LEVELS.forEach(function(item){
     if (!byGrup[item.grup]) byGrup[item.grup] = [];
@@ -125,10 +110,7 @@ window.openStrukturKerabatKerja = function(cid){
   });
 
   var h = '';
-
-  // ============ HEADER DENGAN LOGO ============
   h += '<div style="text-align:center;padding:24px 20px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:16px;margin-bottom:18px;position:relative;">';
-
   if (kerabatLogo){
     h += '<div style="position:relative;display:inline-block;">' +
       '<img src="' + esc(kerabatLogo) + '" style="max-width:120px;max-height:120px;border-radius:16px;border:4px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.15);object-fit:cover;background:#fff;">' +
@@ -140,7 +122,6 @@ window.openStrukturKerabatKerja = function(cid){
       (canEdit ? '<div style="position:absolute;bottom:6px;right:6px;font-size:10px;background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px;color:#fff;font-weight:700;">Klik untuk upload</div>' : '') +
     '</div>';
   }
-
   h += '<h2 style="font-size:20px;font-weight:800;color:#78350f;margin:10px 0 4px 0;">' + esc(kerabatNama) + '</h2>';
   if (kerabatDesk){
     h += '<p style="font-size:12.5px;color:#92400e;margin:4px 0;font-style:italic;">' + esc(kerabatDesk) + '</p>';
@@ -148,13 +129,13 @@ window.openStrukturKerabatKerja = function(cid){
   h += '<p style="font-size:11.5px;color:#92400e;margin:0;">Kelas ' + esc(c.name) + ' &middot; ' + students.length + ' Anggota</p>';
   h += '</div>';
 
-  // Highlight posisi user
+  /* Highlight posisi user */
   if (myId){
     var me = students.find(function(s){ return s.id === myId; });
     if (me){
       var m = getJobMeta(me.role);
       h += '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:12px;margin-bottom:16px;border-left:4px solid var(--primary);">' +
-        '<div style="width:48px;height:48px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex-shrink:0;">' + esc((me.name||'?').charAt(0).toUpperCase()) + '</div>' +
+        avatarHTML(me, 'var(--primary)', 48) +
         '<div style="flex:1;">' +
           '<div style="font-weight:800;font-size:14px;color:var(--text-strong);">' + esc(me.name) + '</div>' +
           '<div style="font-size:12px;color:var(--primary-dark);margin-top:2px;">' + esc(m.jabatan) + '</div>' +
@@ -164,7 +145,6 @@ window.openStrukturKerabatKerja = function(cid){
     }
   }
 
-  // Tombol aksi
   if (canEdit){
     h += '<div class="action-row" style="margin-bottom:16px;flex-wrap:wrap;">' +
       '<button class="btn btn-primary btn-sm" onclick="openEditKerabat(\'' + cid + '\')">' + ic('edit','sm') + ' Edit Nama / Logo</button>' +
@@ -180,7 +160,6 @@ window.openStrukturKerabatKerja = function(cid){
     return;
   }
 
-  // ============ RENDER PER GRUP ============
   var grupOrder = ['PENGURUS INTI', 'DIVISI PRODUKSI', 'DIVISI ARTISTIK', 'PEMERAN'];
   var grupIcon = {
     'PENGURUS INTI': 'shield',
@@ -200,30 +179,22 @@ window.openStrukturKerabatKerja = function(cid){
     if (!items || items.length === 0) return;
 
     h += '<div style="margin-bottom:20px;">';
-
-    // Header grup
     h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:' + grupColor[grup] + ';border-radius:10px 10px 0 0;color:#fff;">' +
       ic(grupIcon[grup] || 'users', 18) +
       '<div style="font-weight:800;font-size:13.5px;letter-spacing:.05em;">' + grup + '</div>' +
       '<div style="margin-left:auto;font-size:11px;opacity:.9;">' + items.length + ' orang</div>' +
     '</div>';
-
-    // List anggota dengan indentation per level
     h += '<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:12px;background:var(--card);">';
 
-    // Kelompokkan per level
     var byLevel = {};
     items.forEach(function(item){
       if (!byLevel[item.meta.level]) byLevel[item.meta.level] = [];
       byLevel[item.meta.level].push(item);
     });
-
     var levelKeys = Object.keys(byLevel).map(Number).sort();
 
     levelKeys.forEach(function(lvl, lvlIdx){
       var levelItems = byLevel[lvl];
-
-      // Level badge
       var levelLabel = lvl === 1 ? 'Pimpinan Inti' : lvl === 2 ? 'Wakil & Pengurus' : lvl === 3 ? 'Koordinator Divisi' : 'Anggota';
 
       if (levelKeys.length > 1 || lvl > 1){
@@ -233,7 +204,6 @@ window.openStrukturKerabatKerja = function(cid){
         '</div>';
       }
 
-      // Indentation berdasarkan level
       var indent = (lvl - 1) * 16;
 
       levelItems.forEach(function(item){
@@ -244,20 +214,14 @@ window.openStrukturKerabatKerja = function(cid){
         h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;' +
           'margin-left:' + indent + 'px;margin-bottom:6px;' +
           'background:' + (isMe ? 'var(--primary-soft)' : 'var(--surface)') + ';' +
-          'border-left:4px solid ' + m.warna + ';' +
-          'border-radius:8px;position:relative;">';
+          'border-left:4px solid ' + m.warna + ';border-radius:8px;position:relative;">';
 
-        // Garis koneksi untuk level > 1
         if (lvl > 1){
           h += '<div style="position:absolute;left:-8px;top:50%;width:8px;height:2px;background:' + m.warna + ';"></div>';
         }
 
-        // Avatar
-        h += '<div style="width:36px;height:36px;border-radius:50%;background:' + m.warna + ';color:#fff;' +
-          'display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;">' +
-          esc((s.name||'?').charAt(0).toUpperCase()) + '</div>';
+        h += avatarHTML(s, m.warna, 36);
 
-        // Info
         h += '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:700;font-size:13px;color:var(--text-strong);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
             esc(s.name) +
@@ -267,7 +231,6 @@ window.openStrukturKerabatKerja = function(cid){
           (s.phone ? '<div style="font-size:10.5px;color:var(--text-muted);margin-top:2px;">' + ic('phone','sm') + ' ' + esc(s.phone) + '</div>' : '') +
         '</div>';
 
-        // WA button
         if (s.phone){
           var phone = window.normalizePhone ? window.normalizePhone(s.phone) : s.phone.replace(/\D/g,'');
           if (phone.charAt(0) === '0') phone = '62' + phone.substring(1);
@@ -277,11 +240,9 @@ window.openStrukturKerabatKerja = function(cid){
           h += '<a href="' + waLink + '" target="_blank" rel="noopener" class="btn btn-sm btn-success" style="text-decoration:none;padding:6px 10px;flex-shrink:0;">' +
             ic('phone','sm') + '</a>';
         }
-
         h += '</div>';
       });
     });
-
     h += '</div></div>';
   });
 
@@ -290,7 +251,7 @@ window.openStrukturKerabatKerja = function(cid){
 };
 
 /* ============================================================
-   EDIT KERABAT (NAMA + LOGO + DESKRIPSI)
+   EDIT KERABAT
    ============================================================ */
 window.openEditKerabat = function(cid){
   if (!isGuru() && uRole() !== 'pimpinan_produksi'){ alert('Akses ditolak'); return; }
@@ -305,7 +266,6 @@ window.openEditKerabat = function(cid){
     '<input id="kb-nama" maxlength="80" value="' + esc(nama) + '" placeholder="Contoh: TEATER KEN AROK"></div>';
   h += '<div class="form-group"><label>Deskripsi / Tagline (opsional)</label>' +
     '<input id="kb-desk" maxlength="120" value="' + esc(desk) + '" placeholder="Contoh: Satu Rasa, Satu Panggung"></div>';
-
   h += '<div class="form-group"><label>Logo Kerabat Kerja (maks 300 KB)</label>' +
     '<input type="file" id="kb-logo" accept="image/*" style="padding:8px;width:100%;">';
 
@@ -318,8 +278,7 @@ window.openEditKerabat = function(cid){
   }
 
   h += '<div class="alert alert-info" style="margin-top:14px;">' + ic('info','sm') +
-    '<div>Logo sebaiknya <b>berbentuk persegi atau bulat</b> dengan ukuran minimal 200×200px. Format PNG/JPG.</div></div>';
-
+    '<div>Logo sebaiknya <b>berbentuk persegi atau bulat</b> minimal 200×200px. Format PNG/JPG.</div></div>';
   h += '<button class="btn btn-primary btn-block btn-lg" style="margin-top:12px;" onclick="saveKerabatInfo(\'' + cid + '\')">' + ic('save') + ' Simpan</button>';
 
   openModal('Edit Kerabat Kerja', h);
@@ -336,8 +295,7 @@ window.saveKerabatInfo = function(cid){
 
   var proceed = function(logoData){
     var upd = Object.assign({}, c, {
-      kerabatNama: nama,
-      kerabatDesk: desk,
+      kerabatNama: nama, kerabatDesk: desk,
       kerabatLogo: logoData !== null ? logoData : (c.kerabatLogo || '')
     });
     delete upd._id;
@@ -374,7 +332,7 @@ window.hapusKerabatLogo = function(cid){
 };
 
 /* ============================================================
-   AUTO-FILL
+   AUTO-FILL & EXPORT
    ============================================================ */
 window.autoFillKerabat = function(cid){
   if (!isGuru() && uRole() !== 'pimpinan_produksi'){ alert('Akses ditolak'); return; }
@@ -382,22 +340,19 @@ window.autoFillKerabat = function(cid){
   if (!c) return;
   var students = c.students || [];
   if (students.length === 0){ alert('Belum ada siswa'); return; }
-  if (!confirm('Auto-fill struktur kerabat dari ' + students.length + ' siswa?\n\nStruktur akan diurutkan otomatis berdasarkan jobdesk.')) return;
+  if (!confirm('Auto-fill struktur kerabat dari ' + students.length + ' siswa?')) return;
   var upd = Object.assign({}, c, {
     kerabatNama: c.kerabatNama || ('Kerabat Kerja ' + c.name),
     kerabatAutoFilledAt: Date.now()
   });
   delete upd._id;
   window.fbSet('classes', cid, upd).then(function(){
-    alert('Auto-fill selesai! Struktur sudah diurutkan otomatis.');
+    alert('Auto-fill selesai!');
     closeModal();
     setTimeout(function(){ window.openStrukturKerabatKerja(cid); }, 250);
   });
 };
 
-/* ============================================================
-   EXPORT EXCEL
-   ============================================================ */
 window.exportStrukturExcel = function(cid){
   if (!window.XLSX){ alert('Library Excel belum siap'); return; }
   var c = findClass(cid);
@@ -431,10 +386,8 @@ function injectFloatingKerabat(){
   if (!window.currentUser) return;
   var cid = uCid();
   if (!cid) return;
-
   var old = document.getElementById('btn-floating-kerabat');
   if (old) old.remove();
-
   var c = findClass(cid);
   if (!c) return;
   if (!c.kerabatNama && !c.kerabatLogo) return;
@@ -457,7 +410,7 @@ function injectFloatingKerabat(){
 }
 
 function injectKerabatBadge(){
-  if (!isSiswa()) return;
+  if (!window.currentUser || String(window.currentUser.type||'').toLowerCase() !== 'siswa') return;
   var old = document.getElementById('kerabat-highlight-badge');
   if (old) old.remove();
   var cid = uCid();
@@ -474,15 +427,43 @@ function injectKerabatBadge(){
   ui.appendChild(badge);
 }
 
+(function(){
+  var orig = window.renderSiswaDash || window.renderSiswaDashboard;
+  if (typeof orig !== 'function') return;
+  var wrapped = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(function(){ injectKerabatBadge(); injectFloatingKerabat(); }, 500);
+    setTimeout(function(){ injectKerabatBadge(); injectFloatingKerabat(); }, 1500);
+    return ret;
+  };
+  window.renderSiswaDash = wrapped;
+  window.renderSiswaDashboard = wrapped;
+})();
+
+(function(){
+  var orig = window.logout;
+  if (typeof orig !== 'function') return;
+  window.logout = function(){
+    ['btn-floating-aduan','btn-floating-naskah','btn-floating-kerabat'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    var badge = document.getElementById('kerabat-highlight-badge');
+    if (badge) badge.remove();
+    return orig.apply(this, arguments);
+  };
+})();
+
+setTimeout(function(){ injectKerabatBadge(); injectFloatingKerabat(); }, 2000);
+
 /* ============================================================
-   PLACEHOLDER — Import Excel
+   IMPORT SISWA (placeholder)
    ============================================================ */
 window.openImportSiswa = function(cid){
   cid = cid || uCid();
   if (!cid){ alert('Kelas tidak ditemukan'); return; }
   if (!isGuru()){ alert('Hanya guru/admin'); return; }
-  var h = '';
-  h += '<div class="alert alert-info">' + ic('info') + '<div><b>Import Siswa dari Excel</b><br><small>Format: Nama | Email | Password | Peran | No. WA</small></div></div>';
+  var h = '<div class="alert alert-info">' + ic('info') + '<div><b>Import Siswa dari Excel</b><br><small>Format: Nama | Email | Password | Peran | No. WA</small></div></div>';
   h += '<button class="btn btn-sm" style="margin-bottom:14px;" onclick="downloadTemplateSiswa()">' + ic('download','sm') + ' Download Template</button>';
   h += '<div class="form-group"><label>Pilih File Excel</label><input type="file" id="import-file" accept=".xlsx,.xls" style="padding:8px;width:100%;"></div>';
   h += '<button class="btn btn-primary btn-block" onclick="doImportSiswa(\'' + cid + '\')">' + ic('upload') + ' Import</button>';
@@ -494,8 +475,7 @@ window.downloadTemplateSiswa = function(){
   if (!window.XLSX){ alert('Excel library belum siap'); return; }
   var data = [
     ['Nama','Email','Password','Peran','No. WA'],
-    ['Ahmad Fauzi','ahmad.f@siswa.smp.belajar.id','#Smpn10smd','pemain','081234567890'],
-    ['Siti Nur','siti.n@siswa.smp.belajar.id','#Smpn10smd','sutradara','081234567891']
+    ['Ahmad Fauzi','ahmad.f@siswa.smp.belajar.id','#Smpn10smd','pemain','081234567890']
   ];
   var ws = XLSX.utils.aoa_to_sheet(data);
   ws['!cols'] = [{wch:28},{wch:38},{wch:15},{wch:26},{wch:15}];
@@ -528,9 +508,9 @@ window.doImportSiswa = function(cid){
         var pw = String(row['Password'] || row['password'] || '').trim() || '#Smpn10smd';
         var ro = String(row['Peran'] || row['peran'] || row['Role'] || row['role'] || '').trim().toLowerCase();
         var ph = String(row['No. WA'] || row['no. wa'] || row['No WA'] || row['phone'] || '').replace(/\D/g,'');
-        if (!n || !em || !ro){ bad.push('Baris ' + (i+2) + ': kurang data'); return; }
-        if (!window.ROLES[ro]){ bad.push('Baris ' + (i+2) + ': role "' + ro + '" tidak valid'); return; }
-        if (existingEmails[em]){ dup.push('Baris ' + (i+2) + ': email ' + em); return; }
+        if (!n || !em || !ro){ bad.push('Baris ' + (i+2)); return; }
+        if (!window.ROLES[ro]){ bad.push('Baris ' + (i+2) + ': role invalid'); return; }
+        if (existingEmails[em]){ dup.push('Baris ' + (i+2)); return; }
         newStudents.push({ id: uid(), name: n, email: em, phone: ph, password: pw, role: ro, registeredAt: Date.now() });
         existingEmails[em] = true;
         ok++;
@@ -542,48 +522,15 @@ window.doImportSiswa = function(cid){
         if (bad.length) msg += '\n' + bad.length + ' gagal';
         alert(msg);
         closeModal();
-        setTimeout(function(){ window.viewClass(cid); }, 300);
+        setTimeout(function(){ if (window.viewClass) window.viewClass(cid); }, 300);
       });
     } catch(err){ alert('Error: ' + err.message); }
   };
   reader.readAsArrayBuffer(f);
 };
 
-/* ============================================================
-   HOOK RENDER
-   ============================================================ */
-(function(){
-  var orig = window.renderSiswaDash;
-  if (typeof orig !== 'function') return;
-  window.renderSiswaDash = function(){
-    var ret = orig.apply(this, arguments);
-    setTimeout(function(){ injectKerabatBadge(); injectFloatingKerabat(); }, 500);
-    setTimeout(function(){ injectKerabatBadge(); injectFloatingKerabat(); }, 1500);
-    return ret;
-  };
-})();
-
-(function(){
-  var orig = window.logout;
-  if (typeof orig !== 'function') return;
-  window.logout = function(){
-    ['btn-floating-aduan','btn-floating-naskah','btn-floating-kerabat'].forEach(function(id){
-      var el = document.getElementById(id);
-      if (el) el.remove();
-    });
-    var badge = document.getElementById('kerabat-highlight-badge');
-    if (badge) badge.remove();
-    return orig.apply(this, arguments);
-  };
-})();
-
-setTimeout(function(){ injectKerabatBadge(); injectFloatingKerabat(); }, 2000);
-
-/* ============================================================
-   EXPORT GLOBAL
-   ============================================================ */
 window.getStrukturMeta = getJobMeta;
 
-console.log('[features-struktur] v2.0 FULL loaded');
+console.log('[features-struktur] v3.0 (foto profil) loaded');
 
 })();
