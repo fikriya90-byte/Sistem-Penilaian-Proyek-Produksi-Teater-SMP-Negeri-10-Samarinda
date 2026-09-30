@@ -79,7 +79,7 @@ var JOB_LEVELS = [
   { role:'anggota_cahaya',        jabatan:'Anggota Tata Cahaya',          level:4, grup:'DIVISI ARTISTIK',  warna:'#a855f7', icon:'user' },
 
   // ===== PEMERAN (KELOMPOK KHUSUS) =====
-  { role:'pemain',                jabatan:'Pemeran',                      level:2, grup:'PEMERAN',         warna:'#10b981', icon:'star' }
+  { role:'pemain',                jabatan:'Pemeran',                      level:3, grup:'PEMERAN',         warna:'#10b981', icon:'star' }
 ];
 
 function getJobMeta(role){
