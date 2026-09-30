@@ -2,7 +2,7 @@
 <html lang="id" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5">
 <meta name="description" content="SP-PPT — Sistem Penilaian Proyek Produksi Teater">
 <title>SP-PPT — Sistem Penilaian Proyek Produksi Teater</title>
 
@@ -21,12 +21,20 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "278312873930",
   appId: "1:278312873930:web:0de00becefffd9e4a2e933"
 };
+window.FIREBASE_CONFIG_BACKUP = {
+  apiKey: "AIzaSyBSbIJRXhsXsfHmJzSDLEVbN6PrDf-tz-s",
+  authDomain: "penilaian-proyek-teatersiswa2.firebaseapp.com",
+  projectId: "penilaian-proyek-teatersiswa2",
+  storageBucket: "penilaian-proyek-teatersiswa2.firebasestorage.app",
+  messagingSenderId: "164909498367",
+  appId: "1:164909498367:web:a9cd478c6343b1511271ca"
+};
 </script>
 </head>
 <body>
 
 <!-- LOADING -->
-<div id="loading" class="loading-overlay">
+<div id="loading-screen" class="loading-overlay">
   <div class="loading-box">
     <div class="spinner"></div>
     <h3>Memuat Aplikasi</h3>
@@ -45,23 +53,26 @@ window.FIREBASE_CONFIG = {
       <h1>Sistem Penilaian Proyek Produksi Teater</h1>
       <p>SMP Negeri 10 Samarinda</p>
     </header>
-
     <div class="theme-wrap">
       <div class="theme-toggle">
-        <button type="button" onclick="setTheme('light')" data-theme="light">Terang</button>
-        <button type="button" onclick="setTheme('dark')" data-theme="dark">Gelap</button>
-        <button type="button" onclick="setTheme('auto')" data-theme="auto">Auto</button>
+        <button type="button" onclick="setTheme('light')" data-theme="light" class="active">
+          <span data-ico="sun" data-size="14"></span> Terang
+        </button>
+        <button type="button" onclick="setTheme('dark')" data-theme="dark">
+          <span data-ico="moon" data-size="14"></span> Gelap
+        </button>
+        <button type="button" onclick="setTheme('auto')" data-theme="auto">
+          <span data-ico="gear" data-size="14"></span> Auto
+        </button>
       </div>
     </div>
-
     <nav class="tabs">
-      <button type="button" class="tab active" onclick="switchTab('guru')" id="tab-guru">Guru</button>
-      <button type="button" class="tab" onclick="switchTab('siswa')" id="tab-siswa">Siswa</button>
-      <button type="button" class="tab" onclick="switchTab('admin')" id="tab-admin">Admin</button>
+      <button type="button" class="tab active" onclick="switchLoginTab('guru')" id="tab-login-guru">Guru</button>
+      <button type="button" class="tab" onclick="switchLoginTab('siswa')" id="tab-login-siswa">Siswa</button>
+      <button type="button" class="tab" onclick="switchLoginTab('admin')" id="tab-login-admin">Admin</button>
     </nav>
 
-    <!-- FORM GURU -->
-    <form id="form-guru" onsubmit="event.preventDefault();doLoginGuru()">
+    <form id="form-login-guru" onsubmit="event.preventDefault();doLoginGuru()">
       <div class="form-group">
         <label>Email Guru</label>
         <input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" autocomplete="username">
@@ -69,33 +80,44 @@ window.FIREBASE_CONFIG = {
       <div class="form-group pw-toggle">
         <label>Password</label>
         <input type="password" id="guru-password" placeholder="Password" autocomplete="current-password">
-        <button class="toggle-btn" type="button" onclick="togglePw('guru-password',this)">Lihat</button>
+        <button class="toggle-btn" type="button" onclick="togglePw('guru-password',this)">
+          <span data-ico="eye" data-size="16"></span>
+        </button>
       </div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Guru</button>
+      <div class="divider-text">
+        <button type="button" class="link" onclick="openForgotPassword('guru')">Lupa Password?</button>
+      </div>
     </form>
 
-    <!-- FORM SISWA -->
-    <form id="form-siswa" class="hidden" onsubmit="event.preventDefault();doLoginSiswa()">
+    <form id="form-login-siswa" class="hidden" onsubmit="event.preventDefault();doLoginSiswa()">
       <div class="form-group">
         <label>Pilih Kelas</label>
         <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select>
       </div>
       <div class="form-group">
         <label>Email atau No. WhatsApp</label>
-        <input type="text" id="siswa-login" placeholder="email atau 08123456789" autocomplete="username">
+        <input type="text" id="siswa-email" placeholder="email atau 08123456789" autocomplete="username">
       </div>
       <div class="form-group pw-toggle">
         <label>Password</label>
         <input type="password" id="siswa-password" placeholder="Password" autocomplete="current-password">
-        <button class="toggle-btn" type="button" onclick="togglePw('siswa-password',this)">Lihat</button>
+        <button class="toggle-btn" type="button" onclick="togglePw('siswa-password',this)">
+          <span data-ico="eye" data-size="16"></span>
+        </button>
       </div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Siswa</button>
-      <div class="divider-text">Belum punya akun? <button type="button" class="link" onclick="showRegister()">Daftar di sini</button></div>
+      <div class="divider-text">
+        <button type="button" class="link" onclick="openForgotPassword('siswa')">Lupa Password?</button>
+      </div>
+      <div class="divider-text">
+        Belum punya akun? <button type="button" class="link" onclick="showRegisterPage()">Daftar di sini</button>
+      </div>
     </form>
 
-    <!-- FORM ADMIN -->
-    <form id="form-admin" class="hidden" onsubmit="event.preventDefault();doLoginAdmin()">
+    <form id="form-login-admin" class="hidden" onsubmit="event.preventDefault();doLoginAdmin()">
       <div class="alert alert-info">
+        <span data-ico="lock" data-size="16"></span>
         <div><b>Area Administrator</b><br>Kelola akun guru pengampu.</div>
       </div>
       <div class="form-group">
@@ -105,7 +127,9 @@ window.FIREBASE_CONFIG = {
       <div class="form-group pw-toggle">
         <label>Password</label>
         <input type="password" id="admin-password" autocomplete="current-password">
-        <button class="toggle-btn" type="button" onclick="togglePw('admin-password',this)">Lihat</button>
+        <button class="toggle-btn" type="button" onclick="togglePw('admin-password',this)">
+          <span data-ico="eye" data-size="16"></span>
+        </button>
       </div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Admin</button>
     </form>
@@ -122,32 +146,34 @@ window.FIREBASE_CONFIG = {
     <form onsubmit="event.preventDefault();doRegister()">
       <div class="form-group">
         <label>Kode Kelas</label>
-        <input type="text" id="reg-code" style="text-transform:uppercase;text-align:center;letter-spacing:.15em;font-weight:700;" placeholder="Contoh: IXA-1234">
+        <input type="text" id="daftar-code" style="text-transform:uppercase;letter-spacing:.15em;text-align:center;font-weight:700;" placeholder="Contoh: IXS-1234">
       </div>
-      <div class="form-group"><label>Nama Lengkap</label><input type="text" id="reg-name" autocomplete="name"></div>
-      <div class="form-group"><label>Email</label><input type="email" id="reg-email" autocomplete="email"></div>
-      <div class="form-group"><label>No. WhatsApp</label><input type="tel" id="reg-phone" placeholder="08123456789"></div>
+      <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name" autocomplete="name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="daftar-email" autocomplete="email"></div>
+      <div class="form-group"><label>No. WhatsApp</label><input type="tel" id="daftar-phone" placeholder="08123456789"></div>
       <div class="form-group pw-toggle">
         <label>Password</label>
-        <input type="password" id="reg-password" autocomplete="new-password">
-        <button class="toggle-btn" type="button" onclick="togglePw('reg-password',this)">Lihat</button>
+        <input type="password" id="daftar-password" autocomplete="new-password">
+        <button class="toggle-btn" type="button" onclick="togglePw('daftar-password',this)"><span data-ico="eye" data-size="16"></span></button>
       </div>
       <div class="form-group pw-toggle">
         <label>Konfirmasi Password</label>
-        <input type="password" id="reg-confirm" autocomplete="new-password">
-        <button class="toggle-btn" type="button" onclick="togglePw('reg-confirm',this)">Lihat</button>
+        <input type="password" id="daftar-confirm" autocomplete="new-password">
+        <button class="toggle-btn" type="button" onclick="togglePw('daftar-confirm',this)"><span data-ico="eye" data-size="16"></span></button>
       </div>
+      <input type="hidden" id="daftar-role" value="pemain">
       <div class="alert alert-info" style="font-size:12px;">
+        <span data-ico="info" data-size="14"></span>
         <div><b>Peran</b> akan ditentukan oleh Guru/Admin setelah pendaftaran.</div>
       </div>
       <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar Sekarang</button>
-      <div class="divider-text">Sudah punya akun? <button type="button" class="link" onclick="showLogin()">Login</button></div>
+      <div class="divider-text">Sudah punya akun? <button type="button" class="link" onclick="showLoginPage()">Login</button></div>
     </form>
   </div>
 </div>
 
 <!-- APP -->
-<div id="app" class="container hidden">
+<div id="app-container" class="container hidden">
   <div class="app-brand-header">
     <div class="app-brand-logos">
       <img src="https://iili.io/nHsHgfe.png" onerror="this.style.display='none'" alt="">
@@ -158,45 +184,59 @@ window.FIREBASE_CONFIG = {
       <p>SMP Negeri 10 Samarinda</p>
     </div>
   </div>
-
   <div class="header">
     <div class="header-info">
-      <h2 id="header-title">Dashboard</h2>
+      <h2 id="header-title-text">Dashboard</h2>
       <div class="user-info" id="user-info"></div>
     </div>
     <div class="actions">
-      <button class="notif-btn hidden" id="btn-notif" onclick="openNotif()">
+      <div class="theme-toggle">
+        <button type="button" onclick="setTheme('light')" data-theme="light" title="Terang"><span data-ico="sun" data-size="14"></span></button>
+        <button type="button" onclick="setTheme('dark')" data-theme="dark" title="Gelap"><span data-ico="moon" data-size="14"></span></button>
+        <button type="button" onclick="setTheme('auto')" data-theme="auto" title="Auto"><span data-ico="gear" data-size="14"></span></button>
+      </div>
+      <button class="notif-btn hidden" id="notif-btn" onclick="openNotifPanel()">
+        <span data-ico="bell" data-size="14"></span>
         <span>Notifikasi</span>
         <span class="notif-badge hidden" id="notif-badge">0</span>
       </button>
-      <button class="btn btn-sm" id="btn-change-pw" onclick="changePw()">Ubah Password</button>
-      <button class="btn btn-sm" onclick="doLogout()">Logout</button>
+      <button class="btn btn-sm" id="btn-change-pw" onclick="openChangePassword()">
+        <span data-ico="key" data-size="13"></span> Password
+      </button>
+      <button class="btn btn-sm" onclick="doLogout()">
+        <span data-ico="out" data-size="13"></span> Logout
+      </button>
     </div>
   </div>
-
   <div class="content" id="main-content"></div>
 </div>
+
+<!-- NOTIF PANEL -->
+<div class="notif-backdrop" id="notif-backdrop" onclick="closeNotifPanel()"></div>
+<aside class="notif-panel" id="notif-panel">
+  <div class="notif-panel-header">
+    <h3><span data-ico="bell" data-size="16"></span> Notifikasi</h3>
+    <button class="close-btn" onclick="closeNotifPanel()"><span data-ico="x" data-size="18"></span></button>
+  </div>
+  <div class="notif-panel-body" id="notif-panel-body"></div>
+</aside>
 
 <!-- MODAL -->
 <div id="modal" class="modal-overlay hidden">
   <div class="modal-content">
     <div class="modal-header">
       <h3 id="modal-title">Modal</h3>
-      <button class="close-btn" onclick="closeModal()">Tutup</button>
+      <button class="close-btn" onclick="closeModal()"><span data-ico="x" data-size="18"></span></button>
     </div>
     <div id="modal-body"></div>
   </div>
 </div>
 
-<!-- NOTIF PANEL -->
-<div class="notif-backdrop" id="notif-backdrop" onclick="closeNotif()"></div>
-<aside class="notif-panel" id="notif-panel">
-  <div class="notif-panel-header">
-    <h3>Notifikasi</h3>
-    <button class="close-btn" onclick="closeNotif()">Tutup</button>
-  </div>
-  <div class="notif-panel-body" id="notif-body"></div>
-</aside>
+<!-- FLOATING -->
+<button id="btn-floating-panduan" class="floating-panduan hidden" onclick="openPanduan()">
+  <span data-ico="book" data-size="22"></span>
+  <span class="floating-panduan-label">Panduan</span>
+</button>
 
 <script src="js/app.js"></script>
 </body>
