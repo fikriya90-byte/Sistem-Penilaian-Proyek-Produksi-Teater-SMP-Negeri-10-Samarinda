@@ -21,6 +21,14 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "278312873930",
   appId: "1:278312873930:web:0de00becefffd9e4a2e933"
 };
+window.FIREBASE_CONFIG_BACKUP = {
+  apiKey: "AIzaSyBSbIJRXhsXsfHmJzSDLEVbN6PrDf-tz-s",
+  authDomain: "penilaian-proyek-teatersiswa2.firebaseapp.com",
+  projectId: "penilaian-proyek-teatersiswa2",
+  storageBucket: "penilaian-proyek-teatersiswa2.firebasestorage.app",
+  messagingSenderId: "164909498367",
+  appId: "1:164909498367:web:a9cd478c6343b1511271ca"
+};
 </script>
 </head>
 <body>
@@ -291,7 +299,6 @@ setTimeout(function(){
       var a = document.getElementById('app-container');
       if (a) a.classList.remove('hidden');
     }
-    /* Cek app.js */
     if (typeof window.doLoginGuru !== 'function'){
       console.error('[SAFETY] app.js tidak termuat atau ada error!');
       setTimeout(function(){
@@ -304,7 +311,7 @@ setTimeout(function(){
 /* Cek apakah app.js ter-load setelah 1 detik */
 setTimeout(function(){
   if (typeof window.doLoginGuru === 'function'){
-    console.log('[OK] app.js v23 loaded successfully');
+    console.log('[OK] app.js loaded successfully');
   } else {
     console.error('[FAIL] app.js NOT loaded — check Console for errors');
   }
@@ -312,9 +319,44 @@ setTimeout(function(){
 </script>
 
 <!-- ============================================================
-     APP.JS — load terakhir
+     SCRIPTS — URUTAN WAJIB (JANGAN DIUBAH URUTANNYA!)
      ============================================================ -->
 <script src="js/app.js"></script>
+<script src="js/features-tahapan.js"></script>
+<script src="js/features-checklist-absensi.js"></script>
+<script src="js/features-docs.js"></script>
+<script src="js/features-comms.js"></script>
+<script src="js/features-schedule.js"></script>
+<script src="js/features-finance.js"></script>
+<script src="js/features-struktur.js"></script>
+<script src="js/features-multifirebase.js"></script>
+<script src="js/features-extra.js"></script>
+<script src="js/features-fix.js"></script>
+<script src="js/features-fix-kelas.js"></script>
 
+<!-- ============================================================
+     POST-LOAD SETUP
+     ============================================================ -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if (window.hydrateIcons) window.hydrateIcons();
+  if (typeof MutationObserver !== 'undefined'){
+    var mo = new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        m.addedNodes.forEach(function(n){
+          if (n.nodeType === 1 && window.hydrateIcons) window.hydrateIcons(n);
+        });
+      });
+    });
+    mo.observe(document.body, {childList:true, subtree:true});
+  }
+  setTimeout(function(){
+    var ls = document.getElementById('loading-screen');
+    if (ls && ls.style.display !== 'none' && !ls.classList.contains('hidden')){
+      if (window.__forceHideLoading) window.__forceHideLoading();
+    }
+  }, 5000);
+});
+</script>
 </body>
 </html>
