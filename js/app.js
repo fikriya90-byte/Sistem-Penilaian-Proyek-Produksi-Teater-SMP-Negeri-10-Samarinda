@@ -1,6 +1,6 @@
 /* ============================================================
-   SP-PPT app.js — v15.0 FINAL
-   Include: Auth, Dashboard, Menu, Notif, Aduan, Profil, Sync
+   SP-PPT app.js — v16.0 FULL FINAL
+   Core: Auth, State, Dashboard, Navigasi, Menu, Notif, Profil
    ============================================================ */
 (function(){
 'use strict';
@@ -411,11 +411,15 @@ function renderNotifPanel(){
   var key = getNotifKey();
   var h = '';
 
-  // Tombol Mark All Read (FIX: ditambah)
+  // Tombol Mark All Read
   var unreadCount = list.filter(function(n){ return !(n.readBy && n.readBy.indexOf(key) >= 0); }).length;
   if (unreadCount > 0){
     h += '<div style="text-align:right;margin-bottom:10px;">' +
-      '<button class="btn btn-sm" onclick="markAllNotifsRead()">' + ic('checkSquare','sm') + ' Tandai Semua Dibaca (' + unreadCount + ')</button>' +
+      '<button class="btn btn-sm btn-primary" onclick="markAllNotifsRead()">' + ic('checkSquare','sm') + ' Tandai Semua Dibaca (' + unreadCount + ')</button>' +
+    '</div>';
+  } else {
+    h += '<div style="text-align:right;margin-bottom:10px;">' +
+      '<span class="badge badge-success">' + ic('check','sm') + ' Semua sudah dibaca</span>' +
     '</div>';
   }
 
@@ -432,7 +436,7 @@ function renderNotifPanel(){
       '<div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;">Dari: <b>' + esc(n.fromName||'Guru') + '</b></div>' +
       '<div style="font-size:12.5px;line-height:1.6;margin-bottom:10px;white-space:pre-wrap;">' + esc(n.message||'') + '</div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-        (!r ? '<button class="btn btn-sm btn-primary" onclick="markRead(\'' + n.id + '\')">' + ic('check','sm') + ' Tandai Dibaca</button>' : '<span class="badge badge-success">' + ic('check','sm') + ' Dibaca</span>') +
+        (!r ? '<button class="btn btn-sm btn-primary" onclick="markRead(\'' + n.id + '\')">' + ic('check','sm') + ' Dibaca</button>' : '<span class="badge badge-success">' + ic('check','sm') + ' Dibaca</span>') +
         (isSiswa() && n.type === 'tugas' ? '<button class="btn btn-sm btn-success" onclick="tandaiTugasSelesai(\'' + n.id + '\')">' + ic('checkSquare','sm') + ' Tugas Selesai</button>' : '') +
         '<button class="btn btn-sm btn-danger" onclick="delNotif(\'' + n.id + '\')">' + ic('trash','sm') + '</button>' +
       '</div></div>';
@@ -452,7 +456,6 @@ window.markRead = function(id){
   });
 };
 
-// FIX: Mark all read
 window.markAllNotifsRead = function(){
   if (!window.currentUser) return;
   var key = getNotifKey();
@@ -464,9 +467,22 @@ window.markAllNotifsRead = function(){
     if (rb.indexOf(key) < 0) rb.push(key);
     return fbSet('notifications', n.id, Object.assign({}, n, {readBy: rb}));
   })).then(function(){
-    updateBadge();
-    renderNotifPanel();
+    updateBadge(); renderNotifPanel();
     alert(unread.length + ' notifikasi ditandai dibaca');
+  });
+};
+
+window.tandaiTugasSelesai = function(id){
+  var n = DB.notifications.find(function(x){ return x.id === id; });
+  if (!n) return;
+  var key = getNotifKey();
+  var db = n.doneBy || [];
+  if (db.indexOf(key) >= 0){ alert('Tugas sudah ditandai selesai'); return; }
+  db.push(key);
+  fbSet('notifications', id, Object.assign({}, n, {doneBy: db})).then(function(){
+    logActivity('task_done', u().name + ' tandai tugas selesai: ' + n.title, {classId: n.classId});
+    alert('Tugas ditandai selesai!');
+    renderNotifPanel();
   });
 };
 
@@ -487,8 +503,7 @@ window.loginGuru = function(){
   });
   if (!t){ alert('Email atau password salah!'); return; }
   window.currentUser = {type:'guru', email:t.email, name:t.name, phone:t.phone||''};
-  saveSession();
-  showApp();
+  saveSession(); showApp();
 };
 
 window.loginSiswa = function(){
@@ -511,8 +526,7 @@ window.loginSiswa = function(){
     type:'siswa', classId:cid, studentId:s.id,
     name:s.name, role:s.role, phone:s.phone||''
   };
-  saveSession();
-  showApp();
+  saveSession(); showApp();
 };
 
 window.loginAdmin = function(){
@@ -520,8 +534,7 @@ window.loginAdmin = function(){
   var p = document.getElementById('admin-password').value;
   if (e === ADMIN.email.toLowerCase() && p === ADMIN.password){
     window.currentUser = {type:'admin', email:ADMIN.email, name:ADMIN.name};
-    saveSession();
-    showApp();
+    saveSession(); showApp();
   } else {
     alert('Email atau password admin salah!');
   }
@@ -724,7 +737,7 @@ function renderSiswaDash(){
 
   var h = '';
 
-  // Kas Reminder (FIX: ditambah)
+  // Kas Reminder
   var kasReminder = window.checkKasReminder ? window.checkKasReminder(c.id, me.id) : null;
   if (kasReminder){
     h += '<div class="alert alert-warning">' + ic('briefcase') + '<div><b>Pengingat Kas</b><br>' + kasReminder + '</div></div>';
@@ -770,7 +783,7 @@ function renderSiswaDash(){
   }
 
   // Master Timeline
-  h += '<h3 style="margin:16px 0 10px;font-size:14.5px;font-weight:700;">' + ic('calendar') + ' Master Timeline Produksi</h3>';
+  h += '<h3 style="margin:16px 0 10px;font-size:14.5px;font-weight:700;">' + ic('calendar') + ' Master Timeline</h3>';
   h += '<div id="timeline-dash-siswa"></div>';
 
   document.getElementById('main-content').innerHTML = h;
@@ -778,7 +791,9 @@ function renderSiswaDash(){
   updateBadge();
 
   setTimeout(function(){
-    if (typeof window.renderMasterTimelineForDashboard === 'function'){
+    if (typeof window.renderMasterTimelineHorizontal === 'function'){
+      window.renderMasterTimelineHorizontal(c.id, 'timeline-dash-siswa');
+    } else if (typeof window.renderMasterTimelineForDashboard === 'function'){
       window.renderMasterTimelineForDashboard(c.id, 'timeline-dash-siswa');
     }
   }, 100);
@@ -1036,7 +1051,7 @@ window.lihatPassword = function(cid){
   openModal('Password Siswa', h);
 };
 
-/* ========== SYNC SISWA (FIX) ========== */
+/* ========== SYNC SISWA ========== */
 window.openSyncStudentsModal = function(cid){
   if (!ownsClass(cid)){ alert('Akses ditolak'); return; }
   var c = DB.classes.find(function(x){ return x.id === cid; });
@@ -1049,7 +1064,6 @@ window.openSyncStudentsModal = function(cid){
   h += '<button class="btn btn-primary btn-block" onclick="runSyncStudents(\'' + cid + '\')">' + ic('refresh') + ' Sinkron Sekarang</button>';
   openModal('Sync Data Siswa', h);
 };
-
 window.runSyncStudents = function(cid){
   if (!firebaseReady){ alert('Firebase belum siap'); return; }
   var doc = fb.collection('classes').doc(cid);
@@ -1067,14 +1081,13 @@ window.runSyncStudents = function(cid){
   }).catch(function(e){ alert('Gagal sync: ' + e.message); });
 };
 
-/* ========== PROFIL GURU (FIX) ========== */
+/* ========== PROFIL GURU ========== */
 window.openGuruProfile = function(){
   if (!isGuru()){ alert('Hanya guru'); return; }
   var t = DB.teachers.find(function(x){
     return x.email && x.email.toLowerCase() === String(window.currentUser.email||'').toLowerCase();
   });
   if (!t){ alert('Data guru tidak ditemukan'); return; }
-
   var h = '<div class="alert alert-info">' + ic('info') + '<div>Update profil Anda. No. WA akan dipakai untuk aduan siswa.</div></div>';
   h += '<div class="form-group"><label>Nama Lengkap</label><input id="gp-name" value="' + esc(t.name||'') + '" maxlength="80"></div>';
   h += '<div class="form-group"><label>Email (tidak bisa diubah)</label><input value="' + esc(t.email) + '" disabled></div>';
@@ -1082,7 +1095,6 @@ window.openGuruProfile = function(){
   h += '<button class="btn btn-primary btn-block" onclick="saveGuruProfile()">' + ic('save') + ' Simpan Profil</button>';
   openModal('Profil Saya', h);
 };
-
 window.saveGuruProfile = function(){
   var n = (document.getElementById('gp-name').value || '').trim();
   var ph = (document.getElementById('gp-phone').value || '').replace(/\D/g,'');
@@ -1123,7 +1135,7 @@ window.kirimBroadcast = function(cid){
   }).then(function(){ closeModal(); alert('Broadcast terkirim!'); });
 };
 
-/* ========== GURU CRUD (Admin) ========== */
+/* ========== GURU CRUD ========== */
 window.openTambahGuru = function(){
   openModal('Tambah Guru',
     '<div class="form-group"><label>Nama</label><input id="tg-name"></div>' +
@@ -1227,7 +1239,7 @@ function openSiswaMenu(){
     { i:'calendar',    l:'Master Schedule',     f:'openMasterSchedule' },
     { i:'image',       l:'Kalender Konten',     f:'openKalenderKonten' },
     { i:'clock',       l:'Jadwal Latihan',      f:'openJadwalLatihan' },
-    { i:'warning',     l:'Aduan Siswa',         f:'openAduanSiswa' }, // FIX: Aduan kembali
+    { i:'warning',     l:'Aduan Siswa',         f:'openAduanSiswa' },
     { i:'activity',    l:'Aktivitas Tim',       f:'openActivityFeedModal' },
     { i:'chart',       l:'Progres Divisi',      f:'openDivisionProgressSelf' },
     { i:'chart',       l:'Keuangan',            f:'openKeuangan' },
@@ -1237,7 +1249,6 @@ function openSiswaMenu(){
     { i:'out',         l:'Keluar',              f:'logout' }
   ];
 
-  // Peran khusus
   if (role === 'koor_perlengkapan' || role === 'anggota_perlengkapan'){
     items.splice(7, 0, { i:'briefcase', l:'Peminjaman Barang', f:'openPeminjamanBarang' });
   }
@@ -1277,26 +1288,8 @@ window.__menuAction = function(fnName){
     try { window[fnName](); }
     catch(e){ console.error('[menu]', fnName, e); alert('Gagal: ' + e.message); }
   } else {
-    alert('Fitur "' + fnName + '" belum tersedia.');
+    alert('Fitur "' + fnName + '" belum tersedia.\n\nUpdate aplikasi atau hubungi admin.');
   }
-};
-
-/* ========== PANDUAN ========== */
-window.openPanduan = function(){
-  if (window.__openPanduanV2) return window.__openPanduanV2();
-
-  // Fallback simple
-  openModal('Panduan',
-    '<div style="white-space:pre-wrap;padding:14px;background:var(--surface);border-radius:10px;font-size:12.5px;line-height:1.7;">' +
-    'SISTEM PENILAIAN PROYEK PRODUKSI TEATER\n\n' +
-    '1. Guru membuat kelas & menambah siswa\n' +
-    '2. Guru mengaktifkan tahapan\n' +
-    '3. Siswa login dengan email atau WA\n' +
-    '4. Siswa isi checklist & beri nilai rekan\n' +
-    '5. Guru menilai Pimproduksi & Sutradara\n' +
-    '6. Sistem hitung otomatis\n\n' +
-    'Bobot: Guru 40% + Ketua 30% + Rekan 30%' +
-    '</div>');
 };
 
 /* ========== CHANGE PASSWORD ========== */
@@ -1329,6 +1322,17 @@ window.saveChangePassword = function(){
     var ns = (cls.students||[]).map(function(x){ return x.id===s.id?Object.assign({},x,{password:n}):x; });
     fbSet('classes', cls.id, Object.assign({}, cls, {students:ns})).then(function(){ closeModal(); alert('Password diubah!'); });
   } else { closeModal(); alert('Admin tidak bisa ubah password.'); }
+};
+
+/* ========== PANDUAN ========== */
+window.openPanduan = function(){
+  if (window.__openPanduanV2) return window.__openPanduanV2();
+  openModal('Panduan',
+    '<div style="white-space:pre-wrap;padding:14px;background:var(--surface);border-radius:10px;font-size:12.5px;line-height:1.7;">' +
+    'SISTEM PENILAIAN PROYEK PRODUKSI TEATER\n\n' +
+    'Bobot: Guru 40% + Ketua 30% + Rekan 30%\n' +
+    'Faktor Kehadiran: auto-multiply 0.75 - 1.0' +
+    '</div>');
 };
 
 /* ========== FIRESTORE SUBSCRIBE ========== */
@@ -1446,7 +1450,6 @@ function subscribe(){
     DB.waLogs = w;
   }, function(e){ console.warn('[wa_logs]', e.message); });
 
-  // Templates shared
   fb.collection('templates_shared').doc('global').onSnapshot(function(doc){
     if (doc.exists) DB.templatesShared = doc.data();
   }, function(e){ console.warn('[templates_shared]', e.message); });
@@ -1454,7 +1457,7 @@ function subscribe(){
 
 /* ========== BOOT ========== */
 function boot(){
-  console.log('[app.js] Boot v15.0...');
+  console.log('[app.js] Boot v16.0 FULL...');
   var t = localStorage.getItem('sppt_theme') || 'auto';
   window.setTheme(t);
   if (window.hydrateIcons) window.hydrateIcons();
@@ -1496,6 +1499,6 @@ window.__forceHideLoading = function(){
 };
 setTimeout(window.__forceHideLoading, 3500);
 
-console.log('[app.js] v15.0 loaded');
+console.log('[app.js] v16.0 FULL loaded');
 
 })();
