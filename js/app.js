@@ -610,6 +610,9 @@ function renderGuruDash(){
     '<button class="btn" onclick="openTambahKelas()">'+ic('plus','sm')+' Tambah Kelas</button>' +
     '<button class="btn" onclick="openActivityLog()">'+ic('activity','sm')+' Aktivitas</button>' +
     '<button class="btn" onclick="openLogKomunikasi()">'+ic('messageCircle','sm')+' Log Komunikasi</button>' +
+     '<button class="btn" onclick="openDokumenSiswa(\''+cid+'\')">'+ic('fileText','sm')+' Dokumen</button>' +
+     '<button class="btn" onclick="openGDriveKeuangan(\''+cid+'\')">'+ic('folder','sm')+' Arsip Nota</button>' +
+     '<button class="btn" onclick="openGDriveDokpub(\''+cid+'\')">'+ic('folder','sm')+' Galeri Dokpub</button>' +
     '</div>';
   h += '<div class="alert alert-info">'+ic('info')+'<div>Selamat datang, <b>'+esc(window.currentUser.name)+'</b>! Kelola kelas Anda di bawah.</div></div>';
   h += '<h3 style="margin-bottom:12px;font-size:14.5px;font-weight:700;">'+ic('school')+' Kelas Saya ('+mine.length+')</h3>';
@@ -1136,6 +1139,19 @@ function openSiswaMenu(){
   });
   h += '</div>';
   openModal('Menu Siswa', h);
+   // Semua siswa bisa lihat dokumennya sendiri
+items.push({i:'fileText', l:'Dokumen Saya', a:'openDokumenSaya'});
+
+// Semua bisa baca naskah
+items.push({i:'book', l:'Arsip Naskah', a:'openNaskahList'});
+
+// GDrive khusus per role
+if (role === 'bendahara'){
+  items.push({i:'folder', l:'Arsip Nota (GDrive)', a:'openGDriveKeuangan'});
+}
+if (role === 'koor_publikasi' || role === 'anggota_publikasi'){
+  items.push({i:'folder', l:'Galeri Dokumentasi (GDrive)', a:'openGDriveDokpub'});
+}
 }
 
 function openAdminMenu(){
