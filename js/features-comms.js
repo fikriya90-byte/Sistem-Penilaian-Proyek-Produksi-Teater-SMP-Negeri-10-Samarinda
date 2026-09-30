@@ -61,14 +61,15 @@ window.WA_TEMPLATES = {
   tugas: {
     label:'Beri Tugas',
     build: function(opts){
+      // FIX: Fallback ke opts.message kalau desc kosong
+      var body = opts.desc || opts.message || '';
       return '*SP-PPT — SMP Negeri 10 Samarinda*\n' +
         '_Tugas Baru_\n\n' +
         'Yth. *' + opts.name + '*\n' +
         '(' + opts.role + ')\n\n' +
         'Anda mendapat tugas:\n\n' +
         '*' + opts.title + '*\n\n' +
-        (opts.desc || '') +
-        (opts.deadline ? '\n\nDeadline: *' + opts.deadline + '*' : '') +
+        body +
         '\n\nMohon dikerjakan dengan baik.\n\n' +
         '—\nDari: ' + opts.sender + '\n' +
         'Waktu: ' + new Date().toLocaleString('id-ID');
@@ -90,6 +91,46 @@ window.WA_TEMPLATES = {
         'Waktu: ' + new Date().toLocaleString('id-ID');
     }
   },
+  peringatan: {
+    label:'Peringatan',
+    build: function(opts){
+      var body = opts.message || opts.desc || '';
+      return '*SP-PPT — SMP Negeri 10 Samarinda*\n' +
+        '_Peringatan_\n\n' +
+        'Yth. *' + opts.name + '*\n\n' +
+        body + '\n\n' +
+        'Mohon diperhatikan.\n\n' +
+        '—\nDari: ' + opts.sender + '\n' +
+        'Waktu: ' + new Date().toLocaleString('id-ID');
+    }
+  },
+  info: {
+    label:'Informasi',
+    build: function(opts){
+      var body = opts.message || opts.desc || '';
+      return '*SP-PPT — SMP Negeri 10 Samarinda*\n' +
+        '_Informasi_\n\n' +
+        'Yth. *' + opts.name + '*\n\n' +
+        body + '\n\n' +
+        '—\nDari: ' + opts.sender + '\n' +
+        'Waktu: ' + new Date().toLocaleString('id-ID');
+    }
+  },
+  aduan_response: {
+    label:'Balasan Aduan',
+    build: function(opts){
+      return '*SP-PPT — SMP Negeri 10 Samarinda*\n' +
+        '_Balasan Aduan_\n\n' +
+        'Yth. *' + opts.name + '*\n\n' +
+        'Terima kasih atas aduan Anda mengenai:\n' +
+        '_' + (opts.aduanTitle || '-') + '_\n\n' +
+        'Balasan dari guru:\n\n' +
+        (opts.message || '') + '\n\n' +
+        '—\nDari: ' + opts.sender + '\n' +
+        'Waktu: ' + new Date().toLocaleString('id-ID');
+    }
+  }
+};
   peringatan: {
     label:'Peringatan',
     build: function(opts){
@@ -132,8 +173,21 @@ window.WA_TEMPLATES = {
 /* ============================================================
    1. WA PANEL GENERIK
    ============================================================ */
-window.__waContext = null;
-
+window.__waContext = {
+  targets: targets,
+  title: opts.title || 'Pesan',
+  message: opts.message || '',
+  sender: u().name || 'Admin',
+  cid: opts.cid || uCid(),
+  type: opts.type || 'info',
+  // FIX: pass semua param
+  desc: opts.desc || '',
+  deadline: opts.deadline || '',
+  kasName: opts.kasName || '',
+  nominal: opts.nominal || 0,
+  periode: opts.periode || '',
+  aduanTitle: opts.aduanTitle || ''
+};
 /**
  * Buka panel WA untuk kirim pesan ke beberapa penerima
  * opts: { targets: [{name, role, phone, id}], title, message, cid, type }
@@ -404,12 +458,14 @@ window.doBeriTugas = function(cid){
   var withWA = targets.filter(function(t){ return t.phone && normalizePhone(t.phone); });
   if (withWA.length > 0){
     openWAPanel({
-      targets: withWA,
-      title: title,
-      message: messageFull,
-      cid: cid,
-      type: 'tugas'
-    });
+  targets: withWA,
+  title: title,
+  desc: desc,
+  deadline: deadlineStr,
+  message: messageFull,
+  cid: cid,
+  type: 'tugas'
+});
   } else {
     alert('Tugas terkirim ke ' + targets.length + ' siswa!');
   }
