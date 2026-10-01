@@ -1,6 +1,6 @@
 /**
  * @file utils.js
- * Utilitas murni (tanpa DOM, tanpa Firebase) — mudah di-test.
+ * Utilitas murni (tanpa DOM, tanpa Firebase).
  */
 
 export function esc(str) {
@@ -15,7 +15,7 @@ export function sanitizeURL(url) {
   const s = String(url).trim();
   if (!s) return '';
   if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(s)) return s;
-  if (/^\/[a-zA-Z0-9._\-/]*$`/.test(s)) return s;
+  if (/^\/[a-zA-Z0-9._\-/]*$/.test(s)) return s;
   try {
     const u = new URL(s);
     if (u.protocol === 'https:' || u.protocol === 'http:') return s;
@@ -24,7 +24,7 @@ export function sanitizeURL(url) {
 }
 
 export function uid(prefix = 'id') {
-  return ``${prefix}_$`{Date.now().toString(36)}`${Math.random().toString(36).slice(2, 8)}`;
+  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function fmtDateTime(ts) {
@@ -33,7 +33,7 @@ export function fmtDateTime(ts) {
   if (isNaN(d.getTime())) return '-';
   const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const pad = (n) => String(n).padStart(2, '0');
-  return `$`{d.getDate()} `${bulan[d.getMonth()]} $`{d.getFullYear()}, `${pad(d.getHours())}:$`{pad(d.getMinutes())}`;
+  return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function fmtDateShort(ts) {
@@ -41,19 +41,19 @@ export function fmtDateShort(ts) {
   const d = new Date(ts);
   if (isNaN(d.getTime())) return '-';
   const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return ``${d.getDate()} $`{bulan[d.getMonth()]} `${d.getFullYear()}`;
+  return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export function fmtTime(ts) {
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, '0');
-  return `$`{pad(d.getHours())}:`${pad(d.getMinutes())}`;
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function todayISO() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  return `$`{d.getFullYear()}-`${pad(d.getMonth() + 1)}-$`{pad(d.getDate())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export function safeRound(val, digits = 2) {
@@ -99,7 +99,7 @@ export function normPhone(v) {
 export function waLink(phone, message) {
   const p = normPhone(phone);
   if (!p) return '';
-  return `https://wa.me/`${p}?text=$`{encodeURIComponent(message || '')}`;
+  return `https://wa.me/${p}?text=${encodeURIComponent(message || '')}`;
 }
 
 export function clone(obj) {
