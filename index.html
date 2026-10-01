@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="SP-PPT — Sistem Penilaian Proyek Produksi Teater SMP Negeri 10 Samarinda">
+<meta name="theme-color" content="#2563eb">
+<title>SP-PPT — Sistem Penilaian Produksi Teater</title>
+
+<link rel="icon" type="image/png" href="https://iili.io/nHsHgfe.png">
+<link rel="apple-touch-icon" href="https://iili.io/nHsHgfe.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+
+<!-- ═══════ SPLASH ═══════ -->
+<div id="splash" class="splash">
+  <div class="splash-logos">
+    <img src="https://iili.io/nHsHgfe.png" alt="Teater" onerror="this.style.display='none'">
+    <img src="https://iili.io/nHvZkQt.png" alt="SMPN 10" onerror="this.style.display='none'">
+  </div>
+  <h1 class="splash-title">SP-PPT</h1>
+  <p class="splash-sub">Sistem Penilaian Proyek Produksi Teater</p>
+  <p class="splash-school">SMP Negeri 10 Samarinda</p>
+  <div class="spinner"></div>
+</div>
+
+<!-- ═══════ LOGIN ═══════ -->
+<div id="login-screen" class="auth-screen hidden">
+  <div class="auth-card">
+    <header class="brand">
+      <div class="brand-logos">
+        <img src="https://iili.io/nHsHgfe.png" alt="Teater" onerror="this.style.display='none'">
+        <img src="https://iili.io/nHvZkQt.png" alt="SMPN 10" onerror="this.style.display='none'">
+      </div>
+      <h1>Sistem Penilaian Proyek Produksi Teater</h1>
+      <p>SMP Negeri 10 Samarinda</p>
+    </header>
+
+    <div class="theme-switch">
+      <button data-theme-set="light" type="button">☀ Terang</button>
+      <button data-theme-set="dark" type="button">🌙 Gelap</button>
+      <button data-theme-set="auto" type="button">⚙ Auto</button>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="login">Masuk</button>
+      <button class="tab" data-tab="register">Daftar</button>
+    </nav>
+
+    <form id="form-login" class="tab-panel active" autocomplete="on">
+      <div class="field">
+        <label for="login-email">Email / WhatsApp</label>
+        <input id="login-email" type="text" placeholder="email atau 0812xxx" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <div class="pw-wrap">
+          <input id="login-password" type="password" placeholder="••••••" required autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-pw="login-password">👁</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk</button>
+      <div class="hint">
+        <button type="button" class="link" id="btn-forgot">Lupa password?</button>
+      </div>
+    </form>
+
+    <form id="form-register" class="tab-panel" autocomplete="off">
+      <div class="field">
+        <label for="reg-code">Kode Kelas</label>
+        <input id="reg-code" type="text" placeholder="IXA-1234" required style="text-transform:uppercase;letter-spacing:.1em;text-align:center;font-weight:700">
+      </div>
+      <div class="field"><label for="reg-name">Nama Lengkap</label><input id="reg-name" type="text" required autocomplete="name"></div>
+      <div class="field"><label for="reg-email">Email</label><input id="reg-email" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="reg-phone">No. WhatsApp</label><input id="reg-phone" type="tel" placeholder="08123456789" required></div>
+      <div class="field">
+        <label for="reg-password">Password</label>
+        <div class="pw-wrap">
+          <input id="reg-password" type="password" required minlength="6" autocomplete="new-password">
+          <button type="button" class="pw-toggle" data-pw="reg-password">👁</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="reg-confirm">Konfirmasi Password</label>
+        <input id="reg-confirm" type="password" required minlength="6" autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar Sekarang</button>
+    </form>
+
+    <footer class="auth-footer">
+      <small>© 2025 SMP Negeri 10 Samarinda</small>
+    </footer>
+  </div>
+</div>
+
+<!-- ═══════ APP ═══════ -->
+<div id="app" class="app hidden">
+  <header class="app-header">
+    <div class="app-header-left">
+      <img src="https://iili.io/nHsHgfe.png" alt="SP-PPT" class="header-logo" onerror="this.style.display='none'">
+      <div class="header-info">
+        <h2 id="header-title">Dashboard</h2>
+        <p id="header-user">—</p>
+      </div>
+    </div>
+    <div class="app-header-actions">
+      <button class="icon-btn" id="btn-notif" title="Notifikasi">🔔<span id="notif-badge" class="badge-dot hidden">0</span></button>
+      <button class="icon-btn" id="btn-theme" title="Tema">🌓</button>
+      <button class="icon-btn" id="btn-logout"
