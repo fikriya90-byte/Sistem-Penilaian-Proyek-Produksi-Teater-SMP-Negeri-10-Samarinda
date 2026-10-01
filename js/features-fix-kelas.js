@@ -1,10 +1,16 @@
 /* ============================================================
-   SP-PPT features-fix-kelas.js — v10.1 FULL FINAL
+   SP-PPT features-fix-kelas.js — v11.0 FULL COMPLETE
    Load PALING AKHIR
+
+   Fitur lengkap:
+   - Repair kelas guru (cache-first + failover)
+   - Tombol Kembali selalu terlihat
+   - Beri Tugas dropdown bertingkat (Divisi > Role > Tahapan)
+   - Login siswa FIX (baca Firestore fresh + case-insensitive)
+   - Register auto-login + notif guru
+   - Aduan siswa + floating button
+   - Fungsi hilang + GDrive integration
    - Tanpa icon
-   - Tombol Kembali selalu terlihat di atas main-content
-   - Beri Tugas dengan dropdown bertingkat (Divisi > Role > Tahapan)
-   - Semua fungsi yang hilang + repair kelas guru
    ============================================================ */
 (function(){
 'use strict';
@@ -220,13 +226,12 @@ function showStatusBar(msg){
 function hideStatusBar(){ var b = document.getElementById('superfix-status'); if (b) b.remove(); }
 
 /* ============================================================
-   BAGIAN 2 — TOMBOL KEMBALI (selalu terlihat)
+   BAGIAN 2 — TOMBOL KEMBALI
    ============================================================ */
 function __injectBackButton(){
   var mc = document.getElementById('main-content');
   if (!mc) return;
 
-  /* Hanya untuk guru/admin yang sedang buka kelas */
   if (!isGuru() || (!window.__viewClassId && !window.__currentViewClassId)){
     var olds = document.querySelectorAll('.sf-back-wrap');
     for (var k = 0; k < olds.length; k++) olds[k].remove();
@@ -273,7 +278,6 @@ function __injectBackButton(){
   else mc.appendChild(wrap);
 }
 
-/* Hook viewClass */
 (function(){
   var _orig = window.viewClass;
   if (typeof _orig !== 'function') return;
@@ -286,7 +290,6 @@ function __injectBackButton(){
   };
 })();
 
-/* Hook renderGuruDash — hilangkan tombol saat balik ke dashboard */
 (function(){
   var _orig = window.renderGuruDash;
   if (typeof _orig !== 'function') return;
@@ -299,7 +302,6 @@ function __injectBackButton(){
   };
 })();
 
-/* MutationObserver + interval */
 if (typeof MutationObserver !== 'undefined'){
   var __moBack = new MutationObserver(function(){ __injectBackButton(); });
   var __startBackMO = function(){
@@ -356,9 +358,7 @@ window.tandaiSemuaBaca = window.markAllRead;
 /* ============================================================
    BAGIAN 4 — BERI TUGAS / DEADLINE DROPDOWN BERTINGKAT
    ============================================================ */
-window.__btState = {
-  cid: null, divisi: '', role: '', stageId: '', items: []
-};
+window.__btState = { cid: null, divisi: '', role: '', stageId: '', items: [] };
 
 var BT_DIVISI_ROLES = {
   pengurus: ['pimpinan_produksi','sutradara','asisten_sutradara','sekretaris','bendahara'],
@@ -424,7 +424,6 @@ function renderBTForm(){
     '<small>Kelas: ' + esc(c.name) + '</small>' +
   '</div></div>';
 
-  /* Step 1 */
   h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
     '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">1. Pilih Divisi / Peran / Tahapan</div>';
 
@@ -456,7 +455,6 @@ function renderBTForm(){
 
   h += '</div>';
 
-  /* Step 2 */
   h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
     '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">2. Daftar Tugas</div>';
 
@@ -487,7 +485,6 @@ function renderBTForm(){
   }
   h += '</div></div>';
 
-  /* Step 3 */
   var students = (c.students||[]).filter(function(s){ return s.id !== uSid(); });
   h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
     '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">3. Penerima (' + students.length + ' siswa)</div>';
@@ -510,7 +507,6 @@ function renderBTForm(){
   });
   h += '</div></div>';
 
-  /* Step 4 */
   h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
     '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">4. Pengaturan</div>';
 
@@ -551,7 +547,6 @@ function renderBTForm(){
   openModal('Beri Tugas / Deadline', h);
 }
 
-/* Event handlers */
 window.__btPickDivisi = function(val){
   window.__btState.divisi = val;
   window.__btState.role = '';
@@ -593,10 +588,7 @@ window.__btAmbilTemplate = function(){
         var exists = st.items.some(function(x){ return x.name === name; });
         if (exists) return;
         st.items.push({
-          name: name,
-          role: role,
-          tahapan: _stageName(st.stageId),
-          manual: false
+          name: name, role: role, tahapan: _stageName(st.stageId), manual: false
         });
         added++;
       });
@@ -608,10 +600,7 @@ window.__btAmbilTemplate = function(){
       var exists = st.items.some(function(x){ return x.name === name; });
       if (exists) return;
       st.items.push({
-        name: name,
-        role: role,
-        tahapan: _stageName(st.stageId),
-        manual: false
+        name: name, role: role, tahapan: _stageName(st.stageId), manual: false
       });
       added++;
     });
@@ -635,10 +624,8 @@ window.__btTambahManual = function(){
   var n = prompt('Nama tugas manual:');
   if (!n || n.trim().length < 3) return;
   st.items.push({
-    name: n.trim(),
-    role: st.role || '',
-    tahapan: _stageName(st.stageId),
-    manual: true
+    name: n.trim(), role: st.role || '',
+    tahapan: _stageName(st.stageId), manual: true
   });
   renderBTForm();
 };
@@ -692,10 +679,8 @@ window.__btSend = function(){
   var targets = [];
   document.querySelectorAll('.bt-target-cb:checked').forEach(function(cb){
     targets.push({
-      id: cb.value,
-      name: cb.getAttribute('data-name'),
-      role: cb.getAttribute('data-role'),
-      phone: cb.getAttribute('data-phone') || ''
+      id: cb.value, name: cb.getAttribute('data-name'),
+      role: cb.getAttribute('data-role'), phone: cb.getAttribute('data-phone') || ''
     });
   });
   if (!targets.length){ alert('Pilih minimal 1 penerima'); return; }
@@ -711,7 +696,6 @@ window.__btSend = function(){
 
   var me = window.currentUser || {};
   var senderName = me.name || 'Guru';
-
   var promises = [];
 
   if (channel === 'app' || channel === 'both'){
@@ -722,10 +706,8 @@ window.__btSend = function(){
         fromId: me.studentId || me.email || 'guru',
         fromName: senderName, fromType: uType(), fromRole: uRole(),
         toId: t.id, type: 'tugas',
-        title: '[TUGAS] ' + title,
-        message: fullMsg,
-        stageId: st.stageId || null,
-        deadline: date || null,
+        title: '[TUGAS] ' + title, message: fullMsg,
+        stageId: st.stageId || null, deadline: date || null,
         createdAt: Date.now(), readBy: [], doneBy: []
       }));
     });
@@ -735,14 +717,11 @@ window.__btSend = function(){
     var ch = (window.DB.checklists[cid] && window.DB.checklists[cid].items) || [];
     var newItems = st.items.map(function(it){
       return {
-        id: uid(),
-        name: it.name,
-        detail: desc || '',
+        id: uid(), name: it.name, detail: desc || '',
         assignedRole: it.role || '__umum',
         division: window.getDivisionOfRole ? window.getDivisionOfRole(it.role) : 'produksi',
         phase: _tahapanKeFase(st.stageId),
-        stageId: st.stageId || '',
-        deadline: date || '',
+        stageId: st.stageId || '', deadline: date || '',
         done: false, isPersonal: false,
         createdAt: Date.now(), createdBy: senderName
       };
@@ -846,9 +825,333 @@ window.__btCopyAllWA = function(){
 };
 
 /* ============================================================
-   BAGIAN 6 — FUNGSI HILANG
+   BAGIAN 6 — LOGIN SISWA FIX
    ============================================================ */
+window.doLoginSiswa = function(){
+  var cid = (document.getElementById('siswa-kelas')||{}).value || '';
+  var inp = ((document.getElementById('siswa-email')||{}).value||'').trim();
+  var pw  = ((document.getElementById('siswa-password')||{}).value||'').trim();
 
+  if (!cid){ alert('Pilih kelas dulu'); return; }
+  if (!inp){ alert('Email atau No. WA wajib diisi'); return; }
+  if (!pw){ alert('Password wajib diisi'); return; }
+
+  var btn = document.querySelector('#form-login-siswa button[type="submit"]');
+  var orig = btn ? btn.innerHTML : '';
+  if (btn){ btn.disabled = true; btn.innerHTML = 'Memeriksa...'; }
+
+  function finish(s, c){
+    if (btn){ btn.disabled = false; btn.innerHTML = orig; }
+    if (!s || !c){
+      alert('Login gagal.\n\nEmail/WA atau password salah.\n\n' +
+        'Kemungkinan:\n' +
+        '1. Password beda huruf besar/kecil\n' +
+        '2. Ada spasi di awal/akhir\n' +
+        '3. Akun belum tersimpan sempurna\n\n' +
+        'Buka Console (F12) untuk detail.');
+      return;
+    }
+    window.currentUser = {
+      type:'siswa', classId:c.id, studentId:s.id,
+      name:s.name, role:s.role,
+      phone:s.phone||'', email:s.email||''
+    };
+    try { localStorage.setItem('sppt_session', JSON.stringify(window.currentUser)); } catch(e){}
+    if (window.saveSession) window.saveSession();
+    console.log('[login] sukses:', s.name);
+    if (window.showApp) window.showApp();
+  }
+
+  function match(s){
+    if (!s || !s.password) return false;
+    var sp = String(s.password).trim();
+    if (sp !== pw && sp.toLowerCase() !== pw.toLowerCase()) return false;
+    var inpLower = inp.toLowerCase();
+    if (inp.indexOf('@') >= 0){
+      var em = String(s.email||'').trim().toLowerCase();
+      return em && em === inpLower;
+    }
+    var inpPhone = inp.replace(/\D/g,'');
+    var sPhone = String(s.phone||'').replace(/\D/g,'');
+    return sPhone && sPhone === inpPhone;
+  }
+
+  function tryFirestore(){
+    if (!window.fb || !window.firebaseReady) return Promise.reject(new Error('firebase-not-ready'));
+    console.log('[login] Baca kelas dari Firestore...');
+    return window.fb.collection('classes').doc(cid).get().then(function(snap){
+      if (!snap.exists) throw new Error('kelas-tidak-ada');
+      var c = snap.data(); c.id = cid;
+      var idx = (window.DB.classes||[]).findIndex(function(x){ return x.id===cid; });
+      if (idx >= 0) window.DB.classes[idx] = c;
+      else window.DB.classes.push(c);
+      return c;
+    });
+  }
+
+  function tryBackup(){
+    if (!window.fbBackup || !window.fbBackupReady) return Promise.reject(new Error('backup-not-ready'));
+    console.log('[login] Baca dari Backup...');
+    return window.fbBackup.collection('classes').doc(cid).get().then(function(snap){
+      if (!snap.exists) throw new Error('kelas-tidak-ada-backup');
+      var c = snap.data(); c.id = cid;
+      var idx = (window.DB.classes||[]).findIndex(function(x){ return x.id===cid; });
+      if (idx >= 0) window.DB.classes[idx] = c;
+      else window.DB.classes.push(c);
+      return c;
+    });
+  }
+
+  function tryCache(){
+    var c = (window.DB.classes||[]).find(function(x){ return x.id===cid; });
+    if (!c) return Promise.reject(new Error('cache-empty'));
+    return Promise.resolve(c);
+  }
+
+  tryFirestore()
+    .catch(function(e){ console.warn('[login] Primary:', e.message); return tryBackup(); })
+    .catch(function(e){ console.warn('[login] Backup:', e.message); return tryCache(); })
+    .then(function(c){
+      if (!c){ finish(null, null); return; }
+      var s = (c.students||[]).find(match);
+      if (!s){
+        var inpPhone = inp.replace(/\D/g,'');
+        var found = (c.students||[]).find(function(x){
+          if (inp.indexOf('@') >= 0) return String(x.email||'').toLowerCase() === inp.toLowerCase();
+          return String(x.phone||'').replace(/\D/g,'') === inpPhone;
+        });
+        if (found){
+          console.warn('[login] Email/WA ketemu tapi password beda');
+          console.warn('  Input:', JSON.stringify(pw));
+          console.warn('  Tersimpan:', JSON.stringify(found.password));
+        } else {
+          console.warn('[login] Siswa tidak ditemukan di kelas', cid);
+          console.warn('Total siswa:', (c.students||[]).length);
+        }
+        finish(null, null);
+        return;
+      }
+      finish(s, c);
+    })
+    .catch(function(e){
+      console.error('[login] Semua sumber gagal:', e.message);
+      finish(null, null);
+    });
+};
+
+/* ============================================================
+   BAGIAN 7 — REGISTER SISWA + AUTO LOGIN + NOTIF GURU
+   ============================================================ */
+window.doRegister = function(){
+  var code = ((document.getElementById('daftar-code')||{}).value||'').trim().toUpperCase();
+  var name = ((document.getElementById('daftar-name')||{}).value||'').trim();
+  var email = ((document.getElementById('daftar-email')||{}).value||'').trim().toLowerCase();
+  var phone = ((document.getElementById('daftar-phone')||{}).value||'').replace(/\D/g,'');
+  var pw = (document.getElementById('daftar-password')||{}).value || '';
+  var cf = (document.getElementById('daftar-confirm')||{}).value || '';
+
+  if (!code || !name || !email || !phone || !pw || !cf){ alert('Lengkapi semua field!'); return; }
+  if (phone.length < 10 || phone.length > 15){ alert('No. WA tidak valid (10-15 digit)!'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ alert('Email tidak valid!'); return; }
+  if (pw.length < 6){ alert('Password minimal 6 karakter!'); return; }
+  if (pw !== cf){ alert('Konfirmasi password tidak cocok!'); return; }
+
+  var btn = document.querySelector('#register-screen button[type="submit"]');
+  var orig = btn ? btn.innerHTML : '';
+  if (btn){ btn.disabled = true; btn.innerHTML = 'Memproses...'; }
+
+  function done(success, msg){
+    if (btn){ btn.disabled = false; btn.innerHTML = orig; }
+    if (!success && msg) alert(msg);
+  }
+
+  function findClassByCode(){
+    if (!window.fb || !window.firebaseReady){
+      var c = (window.DB.classes||[]).find(function(x){ return x.code === code; });
+      if (c) return Promise.resolve(c);
+      return Promise.reject(new Error('Firebase offline + cache kosong'));
+    }
+    console.log('[register] Cari kelas dengan kode:', code);
+    return window.fb.collection('classes').get().then(function(snap){
+      var found = null;
+      snap.forEach(function(d){
+        var o = d.data();
+        if (String(o.code||'').toUpperCase() === code){
+          o.id = d.id; found = o;
+        }
+      });
+      if (!found) throw new Error('Kode Kelas tidak valid!');
+      return found;
+    });
+  }
+
+  findClassByCode().then(function(cls){
+    var newId = uid();
+    var newStudent = {
+      id: newId, name: name, email: email, phone: phone,
+      password: pw, role: 'pemain', registeredAt: Date.now()
+    };
+
+    var server = (window.__activeFB === 'backup' && window.fbBackup) ? window.fbBackup : window.fb;
+    if (!server){ done(false, 'Server tidak tersedia'); return; }
+
+    server.collection('classes').doc(cls.id).get().then(function(snap){
+      var current = snap.exists ? snap.data() : cls;
+      current.students = current.students || [];
+
+      if (current.students.some(function(s){ return s.email && String(s.email).toLowerCase() === email; })){
+        done(false, 'Email sudah terdaftar di kelas ini!'); return Promise.reject(new Error('dup-email'));
+      }
+      if (current.students.some(function(s){ return s.phone && String(s.phone).replace(/\D/g,'') === phone; })){
+        done(false, 'No. WA sudah terdaftar di kelas ini!'); return Promise.reject(new Error('dup-phone'));
+      }
+
+      current.students.push(newStudent);
+      return server.collection('classes').doc(cls.id).set({
+        students: current.students, classId: cls.id
+      }, {merge:true});
+    }).then(function(){
+      var idx = (window.DB.classes||[]).findIndex(function(x){ return x.id===cls.id; });
+      if (idx >= 0){
+        window.DB.classes[idx].students = window.DB.classes[idx].students || [];
+        if (!window.DB.classes[idx].students.some(function(s){ return s.email === email; })){
+          window.DB.classes[idx].students.push(newStudent);
+        }
+      } else {
+        cls.students = cls.students || [];
+        cls.students.push(newStudent);
+        window.DB.classes.push(cls);
+      }
+
+      var nid = uid();
+      window.fbSet('notifications', nid, {
+        id: nid, classId: cls.id,
+        fromId: newId, fromName: name, fromType: 'siswa',
+        toId: 'guru', type: 'info',
+        title: 'Pendaftaran Siswa Baru',
+        message: name + ' mendaftar di ' + (cls.name||'kelas') + ' sebagai Pemeran.',
+        createdAt: Date.now(), readBy: [], doneBy: []
+      }).catch(function(){});
+
+      if (window.logActivity) window.logActivity('student_register', name + ' mendaftar di ' + (cls.name||''), {classId: cls.id});
+
+      window.currentUser = {
+        type: 'siswa', classId: cls.id, studentId: newId,
+        name: name, role: 'pemain', phone: phone, email: email
+      };
+      try { localStorage.setItem('sppt_session', JSON.stringify(window.currentUser)); } catch(e){}
+      if (window.saveSession) window.saveSession();
+
+      console.log('[register] sukses + auto login:', name);
+      done(true);
+      alert('Pendaftaran berhasil!\n\nNama: ' + name + '\nKelas: ' + (cls.name||'-') + '\n\nAnda otomatis login.');
+
+      if (window.showApp) window.showApp();
+    }).catch(function(err){
+      if (err.message === 'dup-email' || err.message === 'dup-phone') return;
+      done(false, 'Gagal menyimpan: ' + err.message);
+    });
+  }).catch(function(err){
+    done(false, 'Gagal: ' + err.message);
+  });
+};
+
+/* ============================================================
+   BAGIAN 8 — ADUAN SISWA + FLOATING BUTTON
+   ============================================================ */
+window.openAduanSiswa = function(){
+  if (!isSiswa()){ alert('Hanya untuk siswa'); return; }
+  var cid = uCid();
+  if (!cid){ alert('Kelas tidak ditemukan'); return; }
+  var h = '<div class="alert alert-warning"><div><b>PERHATIAN</b><br>Aduan hanya untuk masalah signifikan.</div></div>';
+  h += '<div class="form-group"><label>Kategori</label><select id="ad-cat">' +
+    '<option value="Perundungan">Perundungan</option>' +
+    '<option value="Kekerasan fisik">Kekerasan fisik</option>' +
+    '<option value="Kerusakan alat">Kerusakan alat</option>' +
+    '<option value="Kendala besar">Kendala besar</option>' +
+    '<option value="Kesalahan koordinasi">Kesalahan koordinasi</option>' +
+    '<option value="Lainnya">Lainnya</option></select></div>';
+  h += '<div class="form-group"><label>Judul Singkat</label><input id="ad-title" maxlength="100" placeholder="Contoh: Alat rusak"></div>';
+  h += '<div class="form-group"><label>Detail Kronologi</label>' +
+    '<textarea id="ad-detail" rows="5" maxlength="1000" placeholder="Jelaskan: apa, kapan, di mana, siapa yang terlibat..."></textarea>' +
+    '<small style="font-size:11px;color:var(--text-muted);">Minimal 20 karakter.</small></div>';
+  h += '<button class="btn btn-danger btn-block btn-lg" onclick="window.__sfKirimAduan()">Kirim Aduan</button>';
+  openModal('Kirim Aduan', h);
+};
+
+window.__sfKirimAduan = function(){
+  var cat = (document.getElementById('ad-cat')||{}).value || '';
+  var title = ((document.getElementById('ad-title')||{}).value||'').trim();
+  var detail = ((document.getElementById('ad-detail')||{}).value||'').trim();
+  if (!title || title.length < 3){ alert('Judul minimal 3 karakter'); return; }
+  if (!detail || detail.length < 20){ alert('Detail minimal 20 karakter'); return; }
+
+  var cid = uCid();
+  var me = window.currentUser || {};
+  var aduanId = uid();
+
+  window.fbSet('aduan', aduanId, {
+    id: aduanId, classId: cid,
+    fromId: me.studentId, fromName: me.name, fromRole: uRole(),
+    category: cat, title: title, detail: detail,
+    status: 'pending', feedback: '', createdAt: Date.now()
+  }).catch(function(){});
+
+  var nid = uid();
+  window.fbSet('notifications', nid, {
+    id: nid, classId: cid,
+    fromId: me.studentId, fromName: me.name, fromType: 'siswa', fromRole: uRole(),
+    toId: 'guru', type: 'urgent',
+    title: '[ADUAN] ' + title,
+    message: 'Kategori: ' + cat + '\n\n' + detail,
+    aduanId: aduanId,
+    createdAt: Date.now(), readBy: [], doneBy: []
+  }).then(function(){
+    if (window.logActivity) window.logActivity('aduan_create', me.name + ' kirim aduan: ' + title, {classId: cid});
+    closeModal();
+    alert('Aduan terkirim ke guru.');
+  }).catch(function(e){ alert('Gagal kirim: ' + e.message); });
+};
+
+function __injectFloatingAduan(){
+  if (!isSiswa()) return;
+  if (document.getElementById('btn-floating-aduan')) return;
+  var app = document.getElementById('app-container');
+  if (app && app.classList.contains('hidden')) return;
+
+  var btn = document.createElement('button');
+  btn.id = 'btn-floating-aduan';
+  btn.type = 'button';
+  btn.style.cssText = 'position:fixed;bottom:100px;right:24px;z-index:998;' +
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;' +
+    'min-width:64px;min-height:64px;padding:8px 12px;' +
+    'background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;border:none;' +
+    'border-radius:50%;cursor:pointer;box-shadow:0 6px 20px rgba(220,38,38,.4);' +
+    'font-family:inherit;transition:transform .2s;';
+  btn.innerHTML = '<span style="font-size:20px;line-height:1;">!</span>' +
+    '<span style="font-size:9px;font-weight:800;text-transform:uppercase;">Aduan</span>';
+  btn.onclick = function(){ if (window.openAduanSiswa) window.openAduanSiswa(); };
+  document.body.appendChild(btn);
+}
+
+(function(){
+  var orig = window.renderSiswaDash;
+  if (typeof orig !== 'function') return;
+  window.renderSiswaDash = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(__injectFloatingAduan, 400);
+    setTimeout(__injectFloatingAduan, 1200);
+    return ret;
+  };
+})();
+
+setTimeout(__injectFloatingAduan, 2500);
+setTimeout(__injectFloatingAduan, 4500);
+setInterval(__injectFloatingAduan, 4000);
+
+/* ============================================================
+   BAGIAN 9 — FUNGSI HILANG LAINNYA
+   ============================================================ */
 window.openTugasSaya = function(){
   var cid = uCid(), sid = uSid();
   if (!cid){ alert('Kelas tidak ditemukan'); return; }
@@ -1169,7 +1472,7 @@ if (typeof window.openNilaiSaya !== 'function'){
 }
 
 /* ============================================================
-   BAGIAN 7 — AUTO-POPULATE DROPDOWN LOGIN
+   BAGIAN 10 — AUTO-POPULATE DROPDOWN LOGIN
    ============================================================ */
 function populateLoginDropdown(){
   var sel = document.getElementById('siswa-kelas');
@@ -1213,7 +1516,7 @@ function autoReadClassesForLogin(){
 }
 
 /* ============================================================
-   BAGIAN 8 — GDRIVE INTEGRATION
+   BAGIAN 11 — GDRIVE INTEGRATION
    ============================================================ */
 function injectGDriveKasButton(){
   if (!window.currentUser || (uRole() !== 'bendahara' && !isGuru())) return;
@@ -1289,7 +1592,7 @@ window.__sfOpenGDriveDokpub = function(){
 };
 
 /* ============================================================
-   BAGIAN 9 — TOMBOL EXTRA TOOLBAR
+   BAGIAN 12 — TOMBOL EXTRA TOOLBAR
    ============================================================ */
 function injectToolbarExtraButtons(){
   if (!window.currentUser || !isSiswa()) return;
@@ -1330,7 +1633,7 @@ function injectToolbarExtraButtons(){
 }
 
 /* ============================================================
-   BAGIAN 10 — HOOKS
+   BAGIAN 13 — HOOKS
    ============================================================ */
 (function(){
   var orig = window.renderGuruDash;
@@ -1351,8 +1654,8 @@ function injectToolbarExtraButtons(){
   if (typeof orig !== 'function') return;
   window.renderSiswaDash = function(){
     var ret = orig.apply(this, arguments);
-    setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 300);
-    setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 1000);
+    setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); __injectFloatingAduan(); }, 300);
+    setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); __injectFloatingAduan(); }, 1000);
     return ret;
   };
 })();
@@ -1415,7 +1718,7 @@ if (typeof MutationObserver !== 'undefined'){
 }
 
 /* ============================================================
-   BAGIAN 11 — RUN AWAL
+   BAGIAN 14 — RUN AWAL
    ============================================================ */
 setTimeout(autoReadClassesForLogin, 800);
 setTimeout(autoReadClassesForLogin, 2000);
@@ -1444,7 +1747,7 @@ setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); },
 setInterval(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 5000);
 
 /* ============================================================
-   BAGIAN 12 — CONSOLE COMMANDS
+   BAGIAN 15 — CONSOLE COMMANDS
    ============================================================ */
 window.fixKelasSekarang = function(){
   window.__repairKelas(function(ok, err){
@@ -1455,13 +1758,13 @@ window.fixKelasSekarang = function(){
 };
 
 window.bridgeInfo = function(){
-  console.log('=== FIX v10.1 ===');
+  console.log('=== FIX v11.0 ===');
   console.log('User:', (window.currentUser||{}).name, '/', (window.currentUser||{}).role);
   console.log('uCid:', window.uCid());
   console.log('__viewClassId:', window.__viewClassId);
   console.log('__currentViewClassId:', window.__currentViewClassId);
   console.log('sf-back-wrap ada?', !!document.querySelector('.sf-back-wrap'));
-  ['openBeriTugas','openDeadline','openTugasSaya','openDeadlineList','openPenilaianGuruDashboard','openRekapNilai','openNilaiSaya','openKasKelas','markAllRead'].forEach(function(fn){
+  ['openBeriTugas','openDeadline','openTugasSaya','openDeadlineList','openAduanSiswa','doLoginSiswa','doRegister','openPenilaianGuruDashboard','openRekapNilai','openNilaiSaya','openKasKelas','markAllRead'].forEach(function(fn){
     console.log('  ' + fn + ':', typeof window[fn]);
   });
 };
@@ -1470,6 +1773,9 @@ window.clearKelasCache = function(){
   try { localStorage.removeItem(_cacheKey()); alert('Cache dibersihkan. Refresh.'); } catch(e){}
 };
 
-console.log('[fix] v10.1 FULL FINAL loaded — dengan tombol Kembali yang selalu terlihat');
+console.log('[fix] v11.0 FULL COMPLETE loaded');
+console.log('  Repair kelas + Tombol Kembali + Beri Tugas dropdown bertingkat');
+console.log('  Login siswa FIX + Register auto-login + Aduan siswa');
+console.log('  GDrive integration + Mark all read + Fungsi hilang');
 
 })();
