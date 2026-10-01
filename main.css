@@ -1,0 +1,158 @@
+/* ============================================================
+   SP-PPT — styles/main.css
+   Tokens + Base + Components (digabung)
+   ============================================================ */
+
+:root {
+  --bg: #f8f9fa;
+  --bg-elevated: #ffffff;
+  --surface: #f1f3f5;
+  --surface-2: #e5e7eb;
+  --text: #1f2937;
+  --text-strong: #111827;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --primary-light: #3b82f6;
+  --primary-soft: #dbeafe;
+  --primary-glow: rgba(37, 99, 235, 0.18);
+
+  --success: #10b981;
+  --success-soft: #d1fae5;
+  --warning: #f59e0b;
+  --warning-soft: #fef3c7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --info: #0ea5e9;
+  --info-soft: #e0f2fe;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.08);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --motif-url: url('https://iili.io/nJ1Rcj1.png');
+  --motif-overlay: rgba(248, 249, 250, 0.85);
+  --motif-size: 380px;
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --bg-elevated: #1e293b;
+  --surface: #334155;
+  --surface-2: #475569;
+  --text: #e2e8f0;
+  --text-strong: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --border-strong: #475569;
+
+  --primary: #60a5fa;
+  --primary-dark: #3b82f6;
+  --primary-light: #93c5fd;
+  --primary-soft: rgba(96, 165, 250, 0.15);
+  --primary-glow: rgba(96, 165, 250, 0.25);
+
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.15);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.15);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.15);
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.15);
+
+  --motif-overlay: rgba(15, 23, 42, 0.9);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  min-height: 100vh;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Tahoma, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--motif-overlay), var(--motif-overlay)), var(--motif-url);
+  background-size: cover, var(--motif-size);
+  background-position: center, top left;
+  background-repeat: no-repeat, repeat;
+  background-attachment: fixed, fixed;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s, color 0.3s;
+}
+.hidden { display: none !important; }
+img { max-width: 100%; height: auto; display: block; }
+button { font-family: inherit; cursor: pointer; }
+a { color: var(--primary); text-decoration: none; }
+
+/* SPLASH */
+.splash {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-3);
+  background: var(--bg);
+  background-image: linear-gradient(var(--motif-overlay), var(--motif-overlay)), var(--motif-url);
+  background-size: cover, 480px;
+  padding: var(--space-6);
+  text-align: center;
+}
+.splash-logos { display: flex; gap: var(--space-4); justify-content: center; align-items: center; }
+.splash-logos img { height: 88px; filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.12)); }
+.splash-title { font-size: 32px; font-weight: 800; color: var(--primary); letter-spacing: 0.05em; }
+.splash-sub { font-size: 14px; font-weight: 600; color: var(--text-strong); }
+.splash-school { font-size: 12.5px; color: var(--text-muted); }
+.spinner {
+  width: 44px; height: 44px; margin-top: var(--space-6);
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* AUTH */
+.auth-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+}
+.auth-card {
+  width: 100%; max-width: 440px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.brand { text-align: center; display: flex; flex-direction: column; gap: var(--space-2); }
+.brand-logos { display: flex; justify-content: center; gap: var(--space-4); }
+.brand-logos img { height: 64px; }
+.brand h1 { font-size: 16px; font-weight: 700; color: var(--text-strong); line-height: 1.3; }
+.brand p { font-size: 12.5px; color: var(--text-muted); }
+
+.theme-switch {
+  display: inline-flex; align-self: center;
+  background: var(--surface); padding: 3px; border-radius: var(--radius);
+  gap: 2px;
+}
+.theme-switch button {
+  background: none; border: none;
+  padding: 5px 12px; border-radius: 7px;
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  transition: 0.15s;
+}
+.theme-switch button.active { background: var(--bg-elevated); color:
