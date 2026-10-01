@@ -1,10 +1,16 @@
 /* ============================================================
-   SP-PPT features-fix-kelas.js — v9.1 FULL (TANPA ICON)
+   SP-PPT features-fix-kelas.js — v10.0 FULL FINAL
    Load PALING AKHIR
+   - Tanpa icon
+   - Beri Tugas dengan dropdown bertingkat (Divisi > Role > Tahapan)
+   - Ambil dari template checklist (Master + Student)
+   - Auto-pilih penerima by role
+   - WA Deep Link
+   - Semua fungsi yang hilang + repair kelas
    ============================================================ */
 (function(){
 'use strict';
-if (!window.DB){ console.warn('[superfix] DB belum siap'); return; }
+if (!window.DB){ console.warn('[fix] DB belum siap'); return; }
 
 /* ============================================================
    HELPERS
@@ -20,7 +26,10 @@ function isSiswa(){ return uType()==='siswa'; }
 function openModal(t,b){ if (window.openModal) window.openModal(t,b); }
 function closeModal(){ if (window.closeModal) window.closeModal(); }
 function findClass(cid){ return (window.DB.classes||[]).find(function(x){ return x.id===cid; }); }
-function roleLabel(r){ return (window.ROLES && window.ROLES[r] && window.ROLES[r].label) || r; }
+function roleLabel(r){
+  if (r === '__umum') return 'Umum';
+  return (window.ROLES && window.ROLES[r] && window.ROLES[r].label) || r;
+}
 
 /* ============================================================
    BAGIAN 0 — SYNC CLASS ID
@@ -54,7 +63,7 @@ setInterval(function(){
 }, 500);
 
 /* ============================================================
-   BAGIAN 1 — REPAIR KELAS
+   BAGIAN 1 — REPAIR KELAS GURU
    ============================================================ */
 function _cacheKey(){
   var em = (window.currentUser && window.currentUser.email) || 'anon';
@@ -262,7 +271,6 @@ window.markAllRead = function(){
   });
 };
 window.tandaiSemuaBaca = window.markAllRead;
-window.markAllNotifRead = window.markAllRead;
 
 (function(){
   var _orig = window.renderNotifPanel;
@@ -284,16 +292,50 @@ window.markAllNotifRead = window.markAllRead;
 })();
 
 /* ============================================================
-   BAGIAN 4 — BERI TUGAS TERINTEGRASI
+   BAGIAN 4 — BERI TUGAS / DEADLINE DROPDOWN BERTINGKAT
    ============================================================ */
 window.__btState = {
-  cid: null, mode: 'manual', stageId: '', roleFilter: '',
-  selectedItems: [], targets: []
+  cid: null,
+  divisi: '',
+  role: '',
+  stageId: '',
+  items: []
 };
+
+/* Mapping divisi -> roles */
+var BT_DIVISI_ROLES = {
+  pengurus: ['pimpinan_produksi','sutradara','asisten_sutradara','sekretaris','bendahara'],
+  produksi: ['koor_publikasi','koor_perlengkapan','koor_akomodasi','anggota_publikasi','anggota_perlengkapan','anggota_akomodasi'],
+  artistik: ['koor_panggung','koor_musik','koor_busana','koor_rias','koor_cahaya','anggota_panggung','anggota_musik','anggota_busana','anggota_rias','anggota_cahaya'],
+  pemain:   ['pemain']
+};
+
+var BT_DIVISI_LABEL = {
+  pengurus: 'Pengurus Inti',
+  produksi: 'Divisi Produksi',
+  artistik: 'Divisi Artistik',
+  pemain:   'Pemeran'
+};
+
+function _tahapanKeFase(stageId){
+  var stage = (window.DB.stages||[]).find(function(s){ return s.id === stageId; });
+  if (!stage) return '';
+  var n = String(stage.name || '').toLowerCase();
+  if (n.indexOf('perencana') >= 0) return 'persiapan';
+  if (n.indexOf('pelaksana') >= 0) return 'produksi';
+  if (n.indexOf('pertunjukan') >= 0 || n.indexOf('show') >= 0) return 'show';
+  if (n.indexOf('evaluasi') >= 0) return 'pasca';
+  return '';
+}
+
+function _stageName(stageId){
+  if (!stageId) return '';
+  var s = (window.DB.stages||[]).find(function(x){ return x.id === stageId; });
+  return s ? s.name : '';
+}
 
 function getMasterChecklist(){ return window.MASTER_CHECKLIST || {}; }
 function getStudentTemplates(){ return window.STUDENT_TEMPLATES || {}; }
-function getDocTemplates(){ return window.MASTER_TEMPLATES || []; }
 function getActiveStagesList(cid){
   var stages = window.DB.stages || [];
   var activeIds = window.DB.activeStages[cid] || [];
@@ -307,384 +349,103 @@ window.openBeriTugas = function(cid){
   if (!cid){ alert('Pilih kelas dulu'); return; }
   var c = findClass(cid);
   if (!c){ alert('Kelas tidak ditemukan'); return; }
-  window.__btState = { cid: cid, mode: 'checklist', stageId: '', roleFilter: '', selectedItems: [], targets: [] };
-  renderBeriTugasStep1();
+  window.__btState = { cid: cid, divisi: '', role: '', stageId: '', items: [] };
+  renderBTForm();
 };
+window.openDeadline = window.openBeriTugas;
+window.openBeriTugasCepat = window.openBeriTugas;
 
-function renderBeriTugasStep1(){
-  var cid = window.__btState.cid;
+function renderBTForm(){
+  var st = window.__btState;
+  var cid = st.cid;
   var c = findClass(cid);
+  var stages = getActiveStagesList(cid);
 
   var h = '';
-  h += '<div class="alert alert-info"><div><b>Beri Tugas Terintegrasi</b><br><small>Kelas: ' + esc(c.name) + '</small></div></div>';
-  h += '<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Mode Tugas</div>';
-  h += '<div style="display:grid;gap:10px;margin-bottom:16px;">';
+  h += '<div class="alert alert-info"><div>' +
+    '<b>Beri Tugas / Deadline</b><br>' +
+    '<small>Kelas: ' + esc(c.name) + '</small>' +
+  '</div></div>';
 
-  h += '<button onclick="window.__btPickMode(\'checklist\')" style="text-align:left;padding:14px;border:2px solid var(--border);border-radius:12px;cursor:pointer;background:var(--card);font-family:inherit;color:var(--text);display:flex;gap:12px;align-items:flex-start;">' +
-    '<div style="width:44px;height:44px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;">CL</div>' +
-    '<div style="flex:1;">' +
-      '<div style="font-weight:700;font-size:14px;">Template Checklist</div>' +
-      '<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Master Checklist Teater (12 peran x 4 fase) atau Student Template</div>' +
-    '</div>' +
-  '</button>';
+  /* --- LANGKAH 1: Dropdown bertingkat --- */
+  h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
+    '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">1. Pilih Divisi / Peran / Tahapan</div>';
 
-  h += '<button onclick="window.__btPickMode(\'dokumen\')" style="text-align:left;padding:14px;border:2px solid var(--border);border-radius:12px;cursor:pointer;background:var(--card);font-family:inherit;color:var(--text);display:flex;gap:12px;align-items:flex-start;">' +
-    '<div style="width:44px;height:44px;border-radius:12px;background:var(--success-soft);color:var(--success);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;">DK</div>' +
-    '<div style="flex:1;">' +
-      '<div style="font-weight:700;font-size:14px;">Template Dokumen</div>' +
-      '<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Tugas mengerjakan dokumen (Rundown, Proposal, LPJ, Scene Breakdown, dll)</div>' +
-    '</div>' +
-  '</button>';
+  h += '<div class="form-group"><label style="color:var(--text-strong);font-weight:700;">Divisi</label>' +
+    '<select id="bt-divisi" style="font-size:14px;padding:10px;" onchange="window.__btPickDivisi(this.value)">' +
+    '<option value="">-- Pilih Divisi --</option>';
+  Object.keys(BT_DIVISI_LABEL).forEach(function(k){
+    h += '<option value="' + k + '"' + (st.divisi===k?' selected':'') + '>' + BT_DIVISI_LABEL[k] + '</option>';
+  });
+  h += '</select></div>';
 
-  h += '<button onclick="window.__btPickMode(\'manual\')" style="text-align:left;padding:14px;border:2px solid var(--border);border-radius:12px;cursor:pointer;background:var(--card);font-family:inherit;color:var(--text);display:flex;gap:12px;align-items:flex-start;">' +
-    '<div style="width:44px;height:44px;border-radius:12px;background:var(--warning-soft);color:var(--warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;">MN</div>' +
-    '<div style="flex:1;">' +
-      '<div style="font-weight:700;font-size:14px;">Ketik Manual</div>' +
-      '<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Isi judul & deskripsi tugas sendiri, tanpa template</div>' +
-    '</div>' +
-  '</button>';
+  h += '<div class="form-group"><label style="color:var(--text-strong);font-weight:700;">Peran / Role</label>' +
+    '<select id="bt-role" style="font-size:14px;padding:10px;" onchange="window.__btPickRole(this.value)">' +
+    '<option value="">-- Pilih Peran --</option>';
+  var roles = st.divisi ? BT_DIVISI_ROLES[st.divisi] : [];
+  roles.forEach(function(r){
+    h += '<option value="' + r + '"' + (st.role===r?' selected':'') + '>' + esc(roleLabel(r)) + '</option>';
+  });
+  h += '</select></div>';
+
+  h += '<div class="form-group"><label style="color:var(--text-strong);font-weight:700;">Tahapan</label>' +
+    '<select id="bt-stage" style="font-size:14px;padding:10px;" onchange="window.__btPickStage(this.value)">' +
+    '<option value="">-- Semua Tahapan --</option>';
+  stages.forEach(function(s){
+    h += '<option value="' + s.id + '"' + (st.stageId===s.id?' selected':'') + '>' + esc(s.name) +
+      ' (bobot ' + s.weight + '%)</option>';
+  });
+  h += '</select></div>';
 
   h += '</div>';
 
-  openModal('Beri Tugas', h);
-}
+  /* --- LANGKAH 2: Daftar item tugas --- */
+  h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
+    '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">2. Daftar Tugas</div>';
 
-window.__btPickMode = function(mode){
-  window.__btState.mode = mode;
-  if (mode === 'manual') renderBeriTugasManual();
-  else if (mode === 'checklist') renderBeriTugasChecklist();
-  else if (mode === 'dokumen') renderBeriTugasDokumen();
-};
-
-function renderBeriTugasChecklist(){
-  var st = window.__btState;
-  var cid = st.cid;
-  var stages = getActiveStagesList(cid);
-  var mcl = getMasterChecklist();
-  var stpl = getStudentTemplates();
-
-  var h = '';
-  h += '<div class="alert alert-info"><div><b>Mode: Checklist</b><br><small>Pilih dari template, filter tahapan, pilih penerima</small></div></div>';
-
-  h += '<div class="form-group"><label>1. Pilih Tahapan</label>' +
-    '<select id="bt-stage" onchange="window.__btState.stageId=this.value">' +
-    '<option value="">-- Semua Tahapan --</option>';
-  stages.forEach(function(s){
-    h += '<option value="' + s.id + '">' + esc(s.name) + ' (bobot ' + s.weight + '%)</option>';
-  });
-  h += '</select></div>';
-
-  h += '<div class="form-group"><label>2. Filter Peran (opsional)</label>' +
-    '<select id="bt-role" onchange="window.__btState.roleFilter=this.value;window.__btRefreshChecklist()">' +
-    '<option value="">-- Semua Peran --</option>';
-  Object.keys(mcl).forEach(function(r){
-    h += '<option value="' + r + '">' + esc(mcl[r].label) + ' (Master)</option>';
-  });
-  Object.keys(stpl).forEach(function(r){
-    if (!mcl[r]) h += '<option value="' + r + '">' + esc(stpl[r].label) + ' (Student)</option>';
-  });
-  h += '</select></div>';
-
-  h += '<div class="form-group"><label>3. Pilih Item Tugas</label>' +
-    '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">' +
-    '<button type="button" class="btn btn-sm" onclick="window.__btCheckAll(true)">Centang Semua</button>' +
-    '<button type="button" class="btn btn-sm" onclick="window.__btCheckAll(false)">Kosongkan</button>' +
-    '</div>' +
-    '<div id="bt-checklist-body" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--surface);"></div>' +
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
+    '<button type="button" class="btn btn-sm btn-primary" onclick="window.__btAmbilTemplate()">Ambil dari Template</button>' +
+    '<button type="button" class="btn btn-sm" onclick="window.__btTambahManual()">Tambah Manual</button>' +
+    (st.items.length ? '<button type="button" class="btn btn-sm btn-danger" onclick="window.__btKosongkan()">Kosongkan</button>' : '') +
   '</div>';
 
-  h += '<div class="form-group"><label>Judul Utama</label>' +
-    '<input id="bt-title" maxlength="100" value="Tugas Checklist" placeholder="Contoh: Checklist Tahap Perencanaan"></div>';
-  h += '<div class="form-group"><label>Pesan Tambahan (opsional)</label>' +
-    '<textarea id="bt-desc" rows="2" maxlength="300" placeholder="Catatan untuk siswa..."></textarea></div>';
-
-  h += '<div class="form-group"><label>Deadline</label>' +
-    '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">' +
-    '<button type="button" class="btn btn-sm" onclick="window.__btTakeStageDeadline()">Ambil dari Tahapan</button>' +
-    '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-    '<input type="date" id="bt-date">' +
-    '<input type="time" id="bt-time" value="23:59">' +
-    '</div></div>';
-
-  h += '<div id="bt-preview" style="margin:14px 0;"></div>';
-
-  h += '<div class="action-row">' +
-    '<button class="btn" style="flex:1;" onclick="window.openBeriTugas(\'' + cid + '\')">Kembali</button>' +
-    '<button class="btn btn-primary" style="flex:2;" onclick="window.__btNext()">Selanjutnya</button>' +
-  '</div>';
-
-  openModal('Beri Tugas - Checklist', h);
-  setTimeout(function(){ window.__btRefreshChecklist(); }, 100);
-}
-
-window.__btRefreshChecklist = function(){
-  var role = document.getElementById('bt-role') ? document.getElementById('bt-role').value : '';
-  var body = document.getElementById('bt-checklist-body');
-  if (!body) return;
-
-  var mcl = getMasterChecklist();
-  var stpl = getStudentTemplates();
-  var h = '';
-
-  if (!role){
-    Object.keys(mcl).forEach(function(r){
-      var m = mcl[r];
-      var phases = m.phases || {};
-      h += '<div style="margin-bottom:10px;font-weight:700;font-size:12px;color:var(--primary);padding:4px 6px;background:var(--primary-soft);border-radius:4px;">' + esc(m.label) + ' (Master)</div>';
-      Object.keys(phases).forEach(function(ph){
-        h += '<div style="margin-left:10px;margin-bottom:6px;">' +
-          '<div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px;">' + ph + '</div>';
-        phases[ph].forEach(function(name){
-          h += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;background:var(--card);border-radius:6px;margin-bottom:3px;cursor:pointer;font-size:12.5px;">' +
-            '<input type="checkbox" class="bt-item-cb" data-name="' + esc(name) + '" data-role="' + esc(r) + '" data-source="master" data-phase="' + esc(ph) + '">' +
-            '<span style="flex:1;">' + esc(name) + '</span></label>';
-        });
-        h += '</div>';
-      });
-    });
-    Object.keys(stpl).forEach(function(r){
-      if (mcl[r]) return;
-      var t = stpl[r];
-      h += '<div style="margin-bottom:10px;font-weight:700;font-size:12px;color:var(--success);padding:4px 6px;background:var(--success-soft);border-radius:4px;">' + esc(t.label) + ' (Student)</div>';
-      (t.items||[]).forEach(function(name){
-        h += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;background:var(--card);border-radius:6px;margin-bottom:3px;margin-left:10px;cursor:pointer;font-size:12.5px;">' +
-          '<input type="checkbox" class="bt-item-cb" data-name="' + esc(name) + '" data-role="' + esc(r) + '" data-source="student">' +
-          '<span style="flex:1;">' + esc(name) + '</span></label>';
-      });
-    });
+  h += '<div id="bt-items-wrap" style="max-height:280px;overflow-y:auto;">';
+  if (!st.items.length){
+    h += '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12.5px;">' +
+      'Belum ada item. Pilih Divisi + Peran + Tahapan, lalu klik <b>Ambil dari Template</b>.' +
+    '</div>';
   } else {
-    if (mcl[role]){
-      var m = mcl[role];
-      var phases = m.phases || {};
-      Object.keys(phases).forEach(function(ph){
-        h += '<div style="margin-bottom:8px;">' +
-          '<div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">' + ph + '</div>';
-        phases[ph].forEach(function(name){
-          h += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;background:var(--card);border-radius:6px;margin-bottom:3px;cursor:pointer;font-size:12.5px;">' +
-            '<input type="checkbox" class="bt-item-cb" data-name="' + esc(name) + '" data-role="' + esc(role) + '" data-source="master" data-phase="' + esc(ph) + '">' +
-            '<span style="flex:1;">' + esc(name) + '</span></label>';
-        });
-        h += '</div>';
-      });
-    }
-    if (stpl[role]){
-      var t = stpl[role];
-      h += '<div style="margin-bottom:6px;font-weight:700;font-size:12px;color:var(--success);">Student Template</div>';
-      (t.items||[]).forEach(function(name){
-        h += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;background:var(--card);border-radius:6px;margin-bottom:3px;cursor:pointer;font-size:12.5px;">' +
-          '<input type="checkbox" class="bt-item-cb" data-name="' + esc(name) + '" data-role="' + esc(role) + '" data-source="student">' +
-          '<span style="flex:1;">' + esc(name) + '</span></label>';
-      });
-    }
-    if (!mcl[role] && !stpl[role]){
-      h += '<div style="padding:14px;text-align:center;color:var(--text-muted);">Tidak ada template untuk peran ini</div>';
-    }
+    st.items.forEach(function(it, i){
+      h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;border-left:3px solid ' + (it.manual?'var(--warning)':'var(--primary)') + ';">' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:12.5px;font-weight:600;color:var(--text-strong);">' + esc(it.name) + '</div>' +
+          '<div style="font-size:10.5px;color:var(--text-muted);margin-top:2px;">' +
+            esc(roleLabel(it.role)) + (it.tahapan ? ' - ' + esc(it.tahapan) : '') +
+            (it.manual ? ' - Manual' : ' - Template') +
+          '</div>' +
+        '</div>' +
+        '<button type="button" class="btn btn-sm btn-danger" onclick="window.__btHapusItem(' + i + ')">Hapus</button>' +
+      '</div>';
+    });
   }
-
-  body.innerHTML = h || '<div style="padding:14px;text-align:center;color:var(--text-muted);">(kosong)</div>';
-};
-
-window.__btCheckAll = function(c){
-  document.querySelectorAll('.bt-item-cb').forEach(function(cb){ cb.checked = c; });
-  window.__btRefreshPreview();
-};
-
-window.__btTakeStageDeadline = function(){
-  var st = window.__btState;
-  var el = document.getElementById('bt-stage');
-  var stageId = el ? el.value : '';
-  if (!stageId){ alert('Pilih tahapan dulu'); return; }
-  var dl = (window.DB.deadlines[st.cid] && window.DB.deadlines[st.cid][stageId]) || {};
-  if (!dl.date){ alert('Tahapan ini belum punya deadline.\nAtur dulu di Sistem Tahapan > Deadline.'); return; }
-  document.getElementById('bt-date').value = dl.date;
-  if (dl.time) document.getElementById('bt-time').value = dl.time;
-};
-
-window.__btRefreshPreview = function(){
-  var sel = document.querySelectorAll('.bt-item-cb:checked');
-  var prev = document.getElementById('bt-preview');
-  if (!prev) return;
-  if (sel.length === 0){
-    prev.innerHTML = '<div class="alert alert-warning"><div>Belum ada item dipilih</div></div>';
-    return;
-  }
-  prev.innerHTML = '<div class="alert alert-success"><div><b>' + sel.length + ' item tugas</b> akan dikirim</div></div>';
-};
-
-function renderBeriTugasDokumen(){
-  var st = window.__btState;
-  var cid = st.cid;
-  var stages = getActiveStagesList(cid);
-  var docs = getDocTemplates();
-
-  var h = '';
-  h += '<div class="alert alert-info"><div><b>Mode: Dokumen</b><br><small>Pilih template dokumen, tentukan penerima</small></div></div>';
-
-  h += '<div class="form-group"><label>1. Pilih Tahapan (opsional)</label>' +
-    '<select id="bt-stage" onchange="window.__btState.stageId=this.value">' +
-    '<option value="">-- Semua Tahapan --</option>';
-  stages.forEach(function(s){
-    h += '<option value="' + s.id + '">' + esc(s.name) + '</option>';
-  });
-  h += '</select></div>';
-
-  h += '<div class="form-group"><label>2. Pilih Template Dokumen</label>' +
-    '<div id="bt-doc-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--surface);">';
-  docs.forEach(function(d){
-    var roles = (d.defaultRoles||[]).map(function(r){ return roleLabel(r); }).join(', ');
-    h += '<label style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--card);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:12.5px;border-left:3px solid var(--success);">' +
-      '<input type="checkbox" class="bt-doc-cb" data-key="' + esc(d.key) + '" data-title="' + esc(d.title) + '" data-roles="' + esc((d.defaultRoles||[]).join(',')) + '">' +
-      '<div style="flex:1;">' +
-        '<div style="font-weight:700;">' + esc(d.title) + '</div>' +
-        '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">' + esc(d.desc||'') + '</div>' +
-        '<div style="font-size:10.5px;color:var(--primary);margin-top:4px;">Peran: ' + esc(roles) + '</div>' +
-      '</div></label>';
-  });
   h += '</div></div>';
 
-  h += '<div class="form-group"><label>Judul Utama</label>' +
-    '<input id="bt-title" maxlength="100" value="Tugas Dokumen" placeholder="Contoh: Susun Proposal"></div>';
-  h += '<div class="form-group"><label>Pesan Tambahan</label>' +
-    '<textarea id="bt-desc" rows="2" maxlength="300"></textarea></div>';
-
-  h += '<div class="form-group"><label>Deadline</label>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-    '<input type="date" id="bt-date">' +
-    '<input type="time" id="bt-time" value="23:59">' +
-    '</div></div>';
-
-  h += '<div class="action-row">' +
-    '<button class="btn" style="flex:1;" onclick="window.openBeriTugas(\'' + cid + '\')">Kembali</button>' +
-    '<button class="btn btn-primary" style="flex:2;" onclick="window.__btNext()">Selanjutnya</button>' +
-  '</div>';
-
-  openModal('Beri Tugas - Dokumen', h);
-}
-
-function renderBeriTugasManual(){
-  var st = window.__btState;
-  var cid = st.cid;
-  var stages = getActiveStagesList(cid);
-
-  var h = '';
-  h += '<div class="alert alert-info"><div><b>Mode: Manual</b><br><small>Isi judul, deskripsi, deadline</small></div></div>';
-
-  h += '<div class="form-group"><label>Judul Tugas *</label>' +
-    '<input id="bt-title" maxlength="100" placeholder="Contoh: Latihan adegan 1"></div>';
-  h += '<div class="form-group"><label>Deskripsi</label>' +
-    '<textarea id="bt-desc" rows="3" maxlength="500"></textarea></div>';
-
-  h += '<div class="form-group"><label>Tahapan (opsional)</label>' +
-    '<select id="bt-stage" onchange="window.__btState.stageId=this.value">' +
-    '<option value="">-- Tidak terkait tahapan --</option>';
-  stages.forEach(function(s){
-    h += '<option value="' + s.id + '">' + esc(s.name) + '</option>';
-  });
-  h += '</select></div>';
-
-  h += '<div class="form-group"><label>Deadline</label>' +
-    '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
-    '<button type="button" class="btn btn-sm" onclick="window.__btTakeStageDeadline()">Ambil dari Tahapan</button>' +
-    '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-    '<input type="date" id="bt-date">' +
-    '<input type="time" id="bt-time" value="23:59">' +
-    '</div></div>';
-
-  h += '<div class="action-row">' +
-    '<button class="btn" style="flex:1;" onclick="window.openBeriTugas(\'' + cid + '\')">Kembali</button>' +
-    '<button class="btn btn-primary" style="flex:2;" onclick="window.__btNext()">Selanjutnya</button>' +
-  '</div>';
-
-  openModal('Beri Tugas - Manual', h);
-}
-
-window.__btNext = function(){
-  var st = window.__btState;
-  var cid = st.cid;
-  var items = [];
-
-  if (st.mode === 'checklist'){
-    document.querySelectorAll('.bt-item-cb:checked').forEach(function(cb){
-      items.push({
-        name: cb.getAttribute('data-name'),
-        role: cb.getAttribute('data-role'),
-        source: cb.getAttribute('data-source'),
-        phase: cb.getAttribute('data-phase') || ''
-      });
-    });
-  } else if (st.mode === 'dokumen'){
-    document.querySelectorAll('.bt-doc-cb:checked').forEach(function(cb){
-      items.push({
-        key: cb.getAttribute('data-key'),
-        name: cb.getAttribute('data-title'),
-        roles: (cb.getAttribute('data-roles')||'').split(',').filter(Boolean),
-        source: 'dokumen'
-      });
-    });
-  }
-
-  var title = (document.getElementById('bt-title')||{}).value || '';
-  var desc = (document.getElementById('bt-desc')||{}).value || '';
-  var date = (document.getElementById('bt-date')||{}).value || '';
-  var time = (document.getElementById('bt-time')||{}).value || '23:59';
-  var stageEl = document.getElementById('bt-stage');
-  var stageId = stageEl ? stageEl.value : '';
-
-  if (st.mode === 'manual'){
-    if (!title.trim()){ alert('Judul wajib'); return; }
-  } else {
-    if (!items.length){ alert('Pilih minimal 1 item'); return; }
-    if (!title.trim()){ alert('Judul wajib'); return; }
-  }
-
-  st.selectedItems = items;
-  st.title = title.trim();
-  st.desc = desc.trim();
-  st.date = date;
-  st.time = time;
-  st.stageId = stageId;
-
-  renderBeriTugasPenerima();
-};
-
-function renderBeriTugasPenerima(){
-  var st = window.__btState;
-  var cid = st.cid;
-  var c = findClass(cid);
+  /* --- LANGKAH 3: Penerima --- */
   var students = (c.students||[]).filter(function(s){ return s.id !== uSid(); });
+  h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
+    '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">3. Penerima (' + students.length + ' siswa)</div>';
 
-  var h = '';
-  h += '<div class="alert alert-info"><div><b>Langkah Terakhir</b><br><small>Pilih penerima lalu kirim</small></div></div>';
-  h += '<div class="alert alert-success"><div><b>' + st.selectedItems.length + ' item</b> tugas akan dikirim<br>' +
-    'Judul: <b>' + esc(st.title) + '</b>' +
-    (st.date ? '<br>Deadline: <b>' + esc(st.date + ' ' + st.time) + '</b>' : '') + '</div></div>';
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
+    '<button type="button" class="btn btn-sm" onclick="window.__btTargetAll(true)">Pilih Semua</button>' +
+    '<button type="button" class="btn btn-sm" onclick="window.__btTargetAll(false)">Kosongkan</button>' +
+    '<button type="button" class="btn btn-sm btn-primary" onclick="window.__btTargetByRole()">Auto-Pilih Sesuai Role</button>' +
+  '</div>';
 
-  var allRoles = {};
-  students.forEach(function(s){ allRoles[s.role] = (allRoles[s.role]||0) + 1; });
-
-  h += '<div class="form-group"><label>Filter Cepat Berdasarkan Peran</label>' +
-    '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">';
-  h += '<button type="button" class="btn btn-sm" onclick="window.__btTargetAll(true)">Semua</button>';
-  h += '<button type="button" class="btn btn-sm" onclick="window.__btTargetAll(false)">Kosongkan</button>';
-  Object.keys(allRoles).sort().forEach(function(r){
-    h += '<button type="button" class="btn btn-sm" onclick="window.__btTargetRole(\'' + r + '\')">' + esc(roleLabel(r)) + ' (' + allRoles[r] + ')</button>';
-  });
-  h += '</div></div>';
-
-  h += '<div class="form-group"><label>Penerima (' + students.length + ' siswa)</label>' +
-    '<div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--surface);">';
+  h += '<div style="max-height:260px;overflow-y:auto;background:var(--card);border-radius:8px;padding:6px;">';
   students.forEach(function(s){
-    var shouldCheck = false;
-    st.selectedItems.forEach(function(it){
-      if (it.role && it.role === s.role) shouldCheck = true;
-      if (it.roles && it.roles.indexOf(s.role) >= 0) shouldCheck = true;
-    });
-    if (st.mode === 'manual') shouldCheck = true;
-
-    h += '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--card);border-radius:6px;margin-bottom:3px;cursor:pointer;font-size:12.5px;">' +
-      '<input type="checkbox" class="bt-target-cb" value="' + s.id + '" data-name="' + esc(s.name) + '" data-role="' + esc(s.role) + '" data-phone="' + esc(s.phone||'') + '" ' + (shouldCheck?'checked':'') + '>' +
+    var autoCheck = (st.role && s.role === st.role);
+    h += '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-bottom:3px;cursor:pointer;font-size:12.5px;background:var(--surface);">' +
+      '<input type="checkbox" class="bt-target-cb" value="' + s.id + '" data-name="' + esc(s.name) + '" data-role="' + esc(s.role) + '" data-phone="' + esc(s.phone||'') + '"' + (autoCheck?' checked':'') + '>' +
       '<span style="flex:1;font-weight:600;">' + esc(s.name) + '</span>' +
       '<span style="font-size:10.5px;color:var(--text-muted);">' + esc(roleLabel(s.role)) + '</span>' +
       (s.phone ? '<span class="badge badge-success" style="font-size:9px;">WA</span>' : '<span class="badge badge-gray" style="font-size:9px;">-</span>') +
@@ -692,50 +453,199 @@ function renderBeriTugasPenerima(){
   });
   h += '</div></div>';
 
-  h += '<div class="form-group"><label>Kirim Via</label>' +
-    '<select id="bt-channel">' +
+  /* --- LANGKAH 4: Pengaturan --- */
+  h += '<div style="background:var(--surface);padding:14px;border-radius:10px;margin-bottom:14px;">' +
+    '<div style="font-weight:800;font-size:13px;color:var(--text-strong);margin-bottom:10px;">4. Pengaturan</div>';
+
+  h += '<div class="form-group"><label style="color:var(--text-strong);font-weight:700;">Judul Utama</label>' +
+    '<input id="bt-title" style="font-size:14px;padding:10px;" maxlength="100" value="Tugas" placeholder="Contoh: Tugas Tahap Perencanaan"></div>';
+
+  h += '<div class="form-group"><label style="color:var(--text-strong);font-weight:700;">Pesan Tambahan</label>' +
+    '<textarea id="bt-desc" style="font-size:14px;padding:10px;" rows="2" maxlength="300" placeholder="Catatan untuk siswa..."></textarea></div>';
+
+  h += '<div class="form-group"><label style="color:var(--text-strong);font-weight:700;">Deadline</label>' +
+    '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
+    '<button type="button" class="btn btn-sm" onclick="window.__btTakeStageDeadline()">Ambil dari Tahapan</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+    '<input type="date" id="bt-date" style="font-size:14px;padding:10px;">' +
+    '<input type="time" id="bt-time" style="font-size:14px;padding:10px;" value="23:59">' +
+    '</div></div>';
+
+  h += '<div class="form-group"><label style="color:var(--text-strong);font-weight:700;">Kirim Via</label>' +
+    '<select id="bt-channel" style="font-size:14px;padding:10px;">' +
     '<option value="both">Notifikasi + WhatsApp</option>' +
     '<option value="app">Hanya Notifikasi</option>' +
     '<option value="wa">Hanya WhatsApp</option>' +
     '</select></div>';
 
-  if (st.mode === 'checklist'){
-    h += '<div class="form-group"><label style="display:flex;align-items:center;gap:8px;">' +
-      '<input type="checkbox" id="bt-add-check" checked>' +
-      '<span>Tambahkan ke Checklist Tim siswa (mereka bisa centang progress)</span>' +
-    '</label></div>';
-  }
+  h += '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:6px;">' +
+    '<input type="checkbox" id="bt-add-check" checked>' +
+    '<span style="color:var(--text-strong);">Tambahkan juga ke Checklist Tim siswa</span>' +
+  '</label>';
+
+  h += '</div>';
 
   h += '<div class="action-row">' +
-    '<button class="btn" style="flex:1;" onclick="window.__btBack()">Kembali</button>' +
+    '<button class="btn" style="flex:1;" onclick="closeModal()">Batal</button>' +
     '<button class="btn btn-primary" style="flex:2;" onclick="window.__btSend()">Kirim Tugas</button>' +
   '</div>';
 
-  openModal('Pilih Penerima', h);
+  openModal('Beri Tugas / Deadline', h);
 }
 
-window.__btBack = function(){
-  var st = window.__btState;
-  if (st.mode === 'checklist') renderBeriTugasChecklist();
-  else if (st.mode === 'dokumen') renderBeriTugasDokumen();
-  else renderBeriTugasManual();
+/* ============================================================
+   EVENT HANDLERS
+   ============================================================ */
+window.__btPickDivisi = function(val){
+  window.__btState.divisi = val;
+  window.__btState.role = '';
+  var roleEl = document.getElementById('bt-role');
+  if (!roleEl) return;
+  var opts = '<option value="">-- Pilih Peran --</option>';
+  (BT_DIVISI_ROLES[val] || []).forEach(function(r){
+    opts += '<option value="' + r + '">' + esc(roleLabel(r)) + '</option>';
+  });
+  roleEl.innerHTML = opts;
 };
 
-window.__btTargetAll = function(c){
-  document.querySelectorAll('.bt-target-cb').forEach(function(cb){ cb.checked = c; });
-};
-window.__btTargetRole = function(role){
+window.__btPickRole = function(val){
+  window.__btState.role = val;
+  /* Auto-check siswa yang sesuai role */
   document.querySelectorAll('.bt-target-cb').forEach(function(cb){
-    cb.checked = cb.getAttribute('data-role') === role;
+    cb.checked = (cb.getAttribute('data-role') === val);
   });
 };
 
+window.__btPickStage = function(val){
+  window.__btState.stageId = val;
+};
+
+/* ============================================================
+   AMBIL DARI TEMPLATE
+   ============================================================ */
+window.__btAmbilTemplate = function(){
+  var st = window.__btState;
+  var role = st.role;
+  if (!role){ alert('Pilih Peran dulu'); return; }
+
+  var fase = _tahapanKeFase(st.stageId);
+  var mcl = getMasterChecklist();
+  var stpl = getStudentTemplates();
+  var added = 0;
+
+  if (mcl[role] && mcl[role].phases){
+    var phases = mcl[role].phases;
+    var faseKeys = fase ? [fase] : Object.keys(phases);
+    faseKeys.forEach(function(fk){
+      (phases[fk] || []).forEach(function(name){
+        var exists = st.items.some(function(x){ return x.name === name; });
+        if (exists) return;
+        st.items.push({
+          name: name,
+          role: role,
+          tahapan: _stageName(st.stageId),
+          manual: false
+        });
+        added++;
+      });
+    });
+  }
+
+  if (added === 0 && stpl[role]){
+    (stpl[role].items||[]).forEach(function(name){
+      var exists = st.items.some(function(x){ return x.name === name; });
+      if (exists) return;
+      st.items.push({
+        name: name,
+        role: role,
+        tahapan: _stageName(st.stageId),
+        manual: false
+      });
+      added++;
+    });
+  }
+
+  if (added === 0){
+    alert('Tidak ada item template untuk peran ' + roleLabel(role) +
+      (fase ? ' fase ' + fase : '') + '.\nCoba peran lain atau tambah manual.');
+    return;
+  }
+
+  renderBTForm();
+  setTimeout(function(){
+    var wrap = document.getElementById('bt-items-wrap');
+    if (wrap) wrap.scrollTop = 0;
+  }, 100);
+};
+
+window.__btTambahManual = function(){
+  var st = window.__btState;
+  var n = prompt('Nama tugas manual:');
+  if (!n || n.trim().length < 3) return;
+  st.items.push({
+    name: n.trim(),
+    role: st.role || '',
+    tahapan: _stageName(st.stageId),
+    manual: true
+  });
+  renderBTForm();
+};
+
+window.__btHapusItem = function(i){
+  window.__btState.items.splice(i, 1);
+  renderBTForm();
+};
+
+window.__btKosongkan = function(){
+  if (!confirm('Hapus semua item tugas?')) return;
+  window.__btState.items = [];
+  renderBTForm();
+};
+
+/* ============================================================
+   PENERIMA
+   ============================================================ */
+window.__btTargetAll = function(c){
+  document.querySelectorAll('.bt-target-cb').forEach(function(cb){ cb.checked = c; });
+};
+
+window.__btTargetByRole = function(){
+  var st = window.__btState;
+  if (!st.role){ alert('Pilih Peran dulu'); return; }
+  document.querySelectorAll('.bt-target-cb').forEach(function(cb){
+    cb.checked = cb.getAttribute('data-role') === st.role;
+  });
+};
+
+/* ============================================================
+   DEADLINE DARI TAHAPAN
+   ============================================================ */
+window.__btTakeStageDeadline = function(){
+  var st = window.__btState;
+  if (!st.stageId){ alert('Pilih tahapan dulu'); return; }
+  var dl = (window.DB.deadlines[st.cid] && window.DB.deadlines[st.cid][st.stageId]) || {};
+  if (!dl.date){ alert('Tahapan ini belum punya deadline.\nAtur dulu di Sistem Tahapan - Deadline.'); return; }
+  document.getElementById('bt-date').value = dl.date;
+  if (dl.time) document.getElementById('bt-time').value = dl.time;
+};
+
+/* ============================================================
+   KIRIM
+   ============================================================ */
 window.__btSend = function(){
   var st = window.__btState;
   var cid = st.cid;
   var channel = (document.getElementById('bt-channel')||{}).value || 'both';
   var addCheck = document.getElementById('bt-add-check');
   var addToChecklist = addCheck ? addCheck.checked : false;
+  var title = (document.getElementById('bt-title').value||'').trim();
+  var desc = (document.getElementById('bt-desc').value||'').trim();
+  var date = (document.getElementById('bt-date').value||'');
+  var time = (document.getElementById('bt-time').value||'23:59');
+
+  if (!title){ alert('Judul wajib'); return; }
+  if (!st.items.length){ alert('Belum ada item tugas.'); return; }
 
   var targets = [];
   document.querySelectorAll('.bt-target-cb:checked').forEach(function(cb){
@@ -746,30 +656,22 @@ window.__btSend = function(){
       phone: cb.getAttribute('data-phone') || ''
     });
   });
-
   if (!targets.length){ alert('Pilih minimal 1 penerima'); return; }
 
   var lines = [];
-  if (st.mode === 'manual'){
-    lines.push(st.desc || '');
-  } else {
-    if (st.desc) lines.push(st.desc + '\n');
-    lines.push('Daftar Tugas:');
-    st.selectedItems.forEach(function(it, i){
-      var suffix = '';
-      if (it.role) suffix = ' (' + roleLabel(it.role) + ')';
-      lines.push((i+1) + '. ' + it.name + suffix);
-    });
-  }
+  if (desc) lines.push(desc + '\n');
+  lines.push('Daftar Tugas:');
+  st.items.forEach(function(it, i){
+    lines.push((i+1) + '. ' + it.name);
+  });
   var fullMsg = lines.join('\n');
-  if (st.date){
-    fullMsg += '\n\nDeadline: ' + (window.fmtDateShort ? window.fmtDateShort(st.date) : st.date) + ' ' + (st.time || '23:59');
-  }
+  if (date) fullMsg += '\n\nDeadline: ' + (window.fmtDateShort ? window.fmtDateShort(date) : date) + ' ' + time;
 
   var me = window.currentUser || {};
   var senderName = me.name || 'Guru';
 
   var promises = [];
+
   if (channel === 'app' || channel === 'both'){
     targets.forEach(function(t){
       var nid = uid();
@@ -778,55 +680,47 @@ window.__btSend = function(){
         fromId: me.studentId || me.email || 'guru',
         fromName: senderName, fromType: uType(), fromRole: uRole(),
         toId: t.id, type: 'tugas',
-        title: '[TUGAS] ' + st.title,
+        title: '[TUGAS] ' + title,
         message: fullMsg,
         stageId: st.stageId || null,
-        deadline: st.date || null,
+        deadline: date || null,
         createdAt: Date.now(), readBy: [], doneBy: []
       }));
     });
   }
 
-  if (addToChecklist && st.mode === 'checklist'){
+  if (addToChecklist){
     var ch = (window.DB.checklists[cid] && window.DB.checklists[cid].items) || [];
-    var newItems = [];
-    st.selectedItems.forEach(function(it){
-      var targetRoles = it.role ? [it.role] : (it.roles || []);
-      targetRoles.forEach(function(r){
-        newItems.push({
-          id: uid(),
-          name: it.name,
-          detail: st.desc || '',
-          assignedRole: r,
-          division: window.getDivisionOfRole ? window.getDivisionOfRole(r) : 'produksi',
-          phase: it.phase || '',
-          stageId: st.stageId || '',
-          deadline: st.date || '',
-          done: false,
-          isPersonal: false,
-          createdAt: Date.now(),
-          createdBy: senderName
-        });
-      });
+    var newItems = st.items.map(function(it){
+      return {
+        id: uid(),
+        name: it.name,
+        detail: desc || '',
+        assignedRole: it.role || '__umum',
+        division: window.getDivisionOfRole ? window.getDivisionOfRole(it.role) : 'produksi',
+        phase: _tahapanKeFase(st.stageId),
+        stageId: st.stageId || '',
+        deadline: date || '',
+        done: false, isPersonal: false,
+        createdAt: Date.now(), createdBy: senderName
+      };
     });
     ch = ch.concat(newItems);
     promises.push(window.fbSet('checklists', cid, {classId: cid, items: ch}));
   }
 
   Promise.all(promises).then(function(){
-    if (window.logActivity){
-      window.logActivity('task_create', senderName + ' beri tugas "' + st.title + '" ke ' + targets.length + ' siswa', {classId: cid});
-    }
+    if (window.logActivity) window.logActivity('task_create', senderName + ' beri tugas "' + title + '" ke ' + targets.length + ' siswa', {classId: cid});
     closeModal();
 
     var withWA = targets.filter(function(t){ return t.phone && t.phone.replace(/\D/g,'').length >= 10; });
     if ((channel === 'wa' || channel === 'both') && withWA.length > 0){
       window.__waTargets = withWA;
-      window.__waTitle = st.title;
+      window.__waTitle = title;
       window.__waMessage = fullMsg;
       window.__waSender = senderName;
       window.__waCid = cid;
-      showWAPanel(withWA, st.title, fullMsg, senderName, cid);
+      showWAPanel(withWA, title, fullMsg, senderName, cid);
     } else {
       alert('Tugas terkirim ke ' + targets.length + ' siswa!');
     }
@@ -852,18 +746,11 @@ function buildWAMessage(targetName, targetRole, title, message, senderName){
 }
 
 function showWAPanel(targets, title, message, senderName, cid){
-  window.__waTargets = targets;
-  window.__waTitle = title;
-  window.__waMessage = message;
-  window.__waSender = senderName;
-  window.__waCid = cid;
-
   var h = '';
-  h += '<div class="alert alert-info"><div><b>Kirim via WhatsApp</b><br><small>Klik per penerima atau Buka Semua Berurutan</small></div></div>';
+  h += '<div class="alert alert-info"><div><b>Kirim via WhatsApp</b><br><small>' + targets.length + ' penerima</small></div></div>';
   h += '<div class="action-row" style="margin-bottom:12px;flex-wrap:wrap;">' +
     '<button class="btn btn-sm btn-primary" onclick="window.__btOpenAllWA()">Buka Semua Berurutan</button>' +
     '<button class="btn btn-sm" onclick="window.__btCopyAllWA()">Copy Semua</button>' +
-    '<span class="badge badge-warning" style="align-self:center;">' + targets.length + ' penerima</span>' +
   '</div>';
   h += '<div style="max-height:400px;overflow-y:auto;">';
   targets.forEach(function(t, i){
@@ -877,10 +764,6 @@ function showWAPanel(targets, title, message, senderName, cid){
     '</div>';
   });
   h += '</div>';
-  h += '<div style="margin-top:14px;padding:12px;background:var(--surface);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
-    '<b>Catatan:</b><br>' +
-    '&bull; WhatsApp Web harus sudah login<br>' +
-    '&bull; Pesan otomatis terisi, klik Send di WhatsApp</div>';
   h += '<button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="closeModal()">Selesai</button>';
   openModal('Kirim via WhatsApp', h);
 }
@@ -1007,9 +890,9 @@ if (typeof window.openRubrikPenilaian !== 'function'){
 
 window.openChangePassword = function(){
   openModal('Ubah Password',
-    '<div class="form-group pw-toggle"><label>Password Lama</label><input type="password" id="sf-cp-old"><button class="toggle-btn" type="button" onclick="togglePw(\'sf-cp-old\',this)">Lihat</button></div>' +
-    '<div class="form-group pw-toggle"><label>Password Baru</label><input type="password" id="sf-cp-new"><button class="toggle-btn" type="button" onclick="togglePw(\'sf-cp-new\',this)">Lihat</button></div>' +
-    '<div class="form-group pw-toggle"><label>Konfirmasi</label><input type="password" id="sf-cp-conf"><button class="toggle-btn" type="button" onclick="togglePw(\'sf-cp-conf\',this)">Lihat</button></div>' +
+    '<div class="form-group"><label>Password Lama</label><input type="password" id="sf-cp-old"></div>' +
+    '<div class="form-group"><label>Password Baru</label><input type="password" id="sf-cp-new"></div>' +
+    '<div class="form-group"><label>Konfirmasi</label><input type="password" id="sf-cp-conf"></div>' +
     '<button class="btn btn-primary btn-block" onclick="window.__sfSavePassword()">Simpan</button>');
 };
 
@@ -1530,12 +1413,12 @@ window.fixKelasSekarang = function(){
 };
 
 window.bridgeInfo = function(){
-  console.log('=== SUPERFIX v9.1 ===');
+  console.log('=== FIX v10.0 ===');
   console.log('User:', (window.currentUser||{}).name, '/', (window.currentUser||{}).role);
   console.log('uCid:', window.uCid());
   console.log('__viewClassId:', window.__viewClassId);
   console.log('__currentViewClassId:', window.__currentViewClassId);
-  ['openBeriTugas','openTugasSaya','openDeadlineList','openPenilaianGuruDashboard','openRekapNilai','openNilaiSaya','openKasKelas','openSistemTahapan','markAllRead'].forEach(function(fn){
+  ['openBeriTugas','openDeadline','openTugasSaya','openDeadlineList','openPenilaianGuruDashboard','openRekapNilai','openNilaiSaya','openKasKelas','markAllRead'].forEach(function(fn){
     console.log('  ' + fn + ':', typeof window[fn]);
   });
 };
@@ -1544,6 +1427,6 @@ window.clearKelasCache = function(){
   try { localStorage.removeItem(_cacheKey()); alert('Cache dibersihkan. Refresh.'); } catch(e){}
 };
 
-console.log('[superfix] v9.1 FULL (tanpa icon) loaded');
+console.log('[fix] v10.0 FULL FINAL loaded');
 
 })();
