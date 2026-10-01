@@ -3,19 +3,19 @@
  * UI primitives: toast, modal, confirm, theme, avatar, logo.
  */
 
-import { esc, sanitizeURL, initials, fmtDateTime } from '../core/utils.js';
+import { esc, sanitizeURL, initials } from '../core/utils.js';
 import { LIMITS } from '../core/config.js';
 
 const LOGO_TEATER = 'https://iili.io/nHsHgfe.png';
 const LOGO_SEKOLAH = 'https://iili.io/nHvZkQt.png';
 
 export const Logo = {
-  small: () => `<img src="`${LOGO_TEATER}" alt="SP-PPT" class="header-logo" onerror="this.style.display='none'">`,
-  large: () => `<img src="$`{LOGO_TEATER}" alt="SP-PPT" style="height:80px">`,
+  small: () => `<img src="${LOGO_TEATER}" alt="SP-PPT" class="header-logo" onerror="this.style.display='none'">`,
+  large: () => `<img src="${LOGO_TEATER}" alt="SP-PPT" style="height:80px">`,
   pair: () => `
     <div class="brand-logos">
-      <img src="`${LOGO_TEATER}" alt="Teater" onerror="this.style.display='none'">
-      <img src="$`{LOGO_SEKOLAH}" alt="SMPN 10" onerror="this.style.display='none'">
+      <img src="${LOGO_TEATER}" alt="Teater" onerror="this.style.display='none'">
+      <img src="${LOGO_SEKOLAH}" alt="SMPN 10" onerror="this.style.display='none'">
     </div>`,
 };
 
@@ -23,7 +23,7 @@ export function toast(message, type = 'info') {
   const root = document.getElementById('toast-root');
   if (!root) return;
   const el = document.createElement('div');
-  el.className = `toast `${type}`;
+  el.className = `toast ${type}`;
   el.textContent = String(message || '');
   root.appendChild(el);
   setTimeout(() => {
@@ -40,16 +40,12 @@ export function openModal(title, bodyHTML) {
   const titleEl = document.getElementById('modal-title');
   const bodyEl = document.getElementById('modal-body');
   if (!root || !titleEl || !bodyEl) return;
-
   titleEl.textContent = title || '';
   bodyEl.innerHTML = bodyHTML || '';
   root.classList.remove('hidden');
-
   if (!modalEscBound) {
     modalEscBound = true;
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
-    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
     root.addEventListener('click', (e) => {
       if (e.target.hasAttribute('data-modal-close')) closeModal();
     });
@@ -66,7 +62,7 @@ export function closeModal() {
 export function confirmDialog(message) {
   return new Promise((resolve) => {
     openModal('Konfirmasi', `
-      <p style="margin-bottom:16px;font-size:14px;">$`{esc(message)}</p>
+      <p style="margin-bottom:16px;font-size:14px;">${esc(message)}</p>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button class="btn" id="cf-no">Batal</button>
         <button class="btn btn-danger" id="cf-yes">Ya, Lanjut</button>
@@ -84,7 +80,6 @@ export function applyTheme(mode) {
     : mode;
   document.documentElement.setAttribute('data-theme', resolved);
   try { localStorage.setItem(THEME_KEY, mode); } catch { /* ignore */ }
-
   document.querySelectorAll('[data-theme-set]').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-theme-set') === mode);
   });
@@ -94,13 +89,11 @@ export function initTheme() {
   let saved = 'auto';
   try { saved = localStorage.getItem(THEME_KEY) || 'auto'; } catch { /* ignore */ }
   applyTheme(saved);
-
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     let cur = 'auto';
     try { cur = localStorage.getItem(THEME_KEY) || 'auto'; } catch { /* ignore */ }
     if (cur === 'auto') applyTheme('auto');
   });
-
   document.querySelectorAll('[data-theme-set]').forEach((btn) => {
     btn.addEventListener('click', () => applyTheme(btn.getAttribute('data-theme-set')));
   });
@@ -111,14 +104,35 @@ export function toggleTheme() {
   applyTheme(cur === 'dark' ? 'light' : 'dark');
 }
 
+export function bindPasswordToggles() {
+  document.querySelectorAll('.pw-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-pw');
+      const inp = document.getElementById(id);
+      if (!inp) return;
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    });
+  });
+}
+
+export function setHeaderTitle(t) {
+  const el = document.getElementById('header-title');
+  if (el) el.textContent = t;
+}
+
+export function setHeaderUser(t) {
+  const el = document.getElementById('header-user');
+  if (el) el.textContent = t;
+}
+
 export function avatarHTML(person, size = 40) {
   const safe = sanitizeURL(person?.foto || '');
-  const style = `width:`${size}px;height:$`{size}px;border-radius:50%;flex-shrink:0;object-fit:cover;`;
+  const style = `width:${size}px;height:${size}px;border-radius:50%;flex-shrink:0;object-fit:cover;`;
   if (safe) {
-    return `<img src="`${esc(safe)}" alt="$`{esc(person?.name || '')}" style="`${style}border:2px solid var(--border);">`;
+    return `<img src="${esc(safe)}" alt="${esc(person?.name || '')}" style="${style}border:2px solid var(--border);">`;
   }
   const color = colorFromString(person?.name || '');
-  return `<div style="$`{style}background:`${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:$`{Math.round(size * 0.4)}px;">`${esc(initials(person?.name))}</div>`;
+  return `<div style="${style}background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:${Math.round(size * 0.4)}px;">${esc(initials(person?.name))}</div>`;
 }
 
 function colorFromString(s) {
@@ -129,7 +143,9 @@ function colorFromString(s) {
 }
 
 export function emptyState(message, icon = '📭') {
-  return `<div class="empty"><div style="font-size:40px;margin-bottom:8px;">$`{esc(icon)}</div><p>`${esc(message)}</p></div>`;
+  return `<div class="empty"><div style="font-size:40px;margin-bottom:8px;">${esc(icon)}</div><p>${esc(message)}</p></div>`;
 }
 
-export function alertBox(message, type =
+export function alertBox(message, type = 'info') {
+  return `<div class="alert alert-${type}"><strong>ℹ</strong><div>${esc(message)}</div></div>`;
+}
