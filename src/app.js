@@ -7,7 +7,7 @@ import { login, register, logout, getSession } from './auth/session.js';
 import {
   toast, openModal, closeModal, confirmDialog,
   initTheme, toggleTheme, bindPasswordToggles,
-  emptyState, alertBox, setHeaderTitle, setHeaderUser,
+  emptyState, alertBox,
 } from './ui/shell.js';
 import { renderDashboard } from './features/dashboard.js';
 
@@ -42,11 +42,12 @@ function renderBottomNav() {
   const nav = $('bottom-nav');
   if (!nav) return;
   const user = getSession();
-  const items = user?.type === 'guru' || user?.type === 'admin'
+  const isGuru = user?.type === 'guru' || user?.type === 'admin';
+  const items = isGuru
     ? [
         { key: 'dashboard', ico: '🏠', label: 'Beranda' },
-        { key: 'kelas',     ico: '📚', label: 'Kelas' },
-        { key: 'nilai',     ico: '📊', label: 'Nilai' },
+        { key: 'nilai',     ico: '📊', label: 'Rekap' },
+        { key: 'struktur',  ico: '👥', label: 'Struktur' },
         { key: 'jadwal',    ico: '📅', label: 'Jadwal' },
       ]
     : [
@@ -66,20 +67,15 @@ function renderBottomNav() {
     btn.addEventListener('click', async () => {
       nav.querySelectorAll('[data-nav]').forEach((b) => b.classList.toggle('active', b === btn));
       const key = btn.getAttribute('data-nav');
-      const main = $('main-content');
-      if (key === 'dashboard') return mountApp();
       try {
+        if (key === 'dashboard') return mountApp();
         if (key === 'nilai') {
-          const { openNilaiSaya, openRekapNilai } = await import('./features/nilai.js');
-          getSession()?.type === 'siswa' ? openNilaiSaya() : openRekapNilai();
+          const m = await import('./features/nilai.js');
+          isGuru ? m.openRekapNilai() : m.openNilaiSaya();
         } else if (key === 'struktur') {
-          const { openStrukturKerabat } = await import('./features/struktur.js');
-          openStrukturKerabat();
+          const m = await import('./features/struktur.js'); m.openStrukturKerabat();
         } else if (key === 'jadwal') {
-          const { openJadwal } = await import('./features/jadwal.js');
-          openJadwal();
-        } else if (key === 'kelas') {
-          main.innerHTML = '<div class="card"><h3>Daftar Kelas</h3><p>Lihat menu dashboard untuk kelola kelas.</p></div>';
+          const m = await import('./features/jadwal.js'); m.openJadwal();
         }
       } catch (err) {
         toast(err.message || 'Fitur belum tersedia', 'error');
@@ -92,7 +88,6 @@ function bindLoginForm() {
   const form = $('form-login');
   if (!form) return;
   let submitting = false;
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -120,7 +115,6 @@ function bindRegisterForm() {
   const form = $('form-register');
   if (!form) return;
   let submitting = false;
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (submitting) return;
