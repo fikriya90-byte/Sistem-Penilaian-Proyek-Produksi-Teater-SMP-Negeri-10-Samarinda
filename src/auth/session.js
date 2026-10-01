@@ -5,7 +5,7 @@
 
 import { getSmart, setSmart, listSmart } from '../core/db.js';
 import { ADMIN } from '../core/config.js';
-import { esc, normEmail, normPhone, uid } from '../core/utils.js';
+import { normEmail, normPhone, uid } from '../core/utils.js';
 
 const SESSION_KEY = 'sppt_session_v3';
 const CACHE_KEY = 'sppt_classes_cache';
@@ -25,6 +25,8 @@ export function setSession(user) {
 export function clearSession() {
   try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
 }
+
+export function logout() { clearSession(); }
 
 function readCache() {
   try {
@@ -55,6 +57,23 @@ export async function getAllClasses(forceRefresh = false) {
     console.warn('[session] Gagal load classes:', err.message);
     return readCache() || [];
   }
+}
+
+export async function getMyClass() {
+  const user = getSession();
+  if (!user?.classId) return null;
+  const classes = await getAllClasses();
+  return classes.find((c) => c.id === user.classId) || null;
+}
+
+export async function getMyGuruClasses() {
+  const user = getSession();
+  if (!user) return [];
+  const classes = await getAllClasses(true);
+  if (user.type === 'admin') return classes;
+  return classes.filter((c) =>
+    c.teacherEmail === user.email || c.teacherId === user.email
+  );
 }
 
 export async function login(identifier, password) {
@@ -127,7 +146,7 @@ export async function register(data) {
   if (phone.length < 10 || phone.length > 15) {
     throw new Error('No. WhatsApp tidak valid (10–15 digit).');
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+`$/.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('Format email tidak valid.');
   }
   if (password.length < 6) {
@@ -155,21 +174,25 @@ export async function register(data) {
   students.push(newStudent);
 
   await setSmart('classes', cls.id, { students });
-
   try { localStorage.removeItem(CACHE_KEY); } catch { /* ignore */ }
 
   const user = {
     type: 'siswa',
     classId: cls.id,
     studentId: newStudent.id,
-    name,
-    role: 'pemain',
-    email,
-    phone,
+    name, role: 'pemain', email, phone,
   };
   setSession(user);
 
   const notifId = uid('notif');
   setSmart('notifications', notifId, {
     id: notifId,
-    c
+    classId: cls.id,
+    title: 'Siswa baru terdaftar',
+    body: `${name} bergabung ke kelas ${cls.name || cls.id}.`,
+    createdAt: Date.now(),
+    read: false,
+  }).catch(() => {});
+
+  return { user };
+}
