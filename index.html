@@ -5,21 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5">
   <title>SP-PPT - Sistem Penilaian Proyek Produksi Teater</title>
   
-  <!-- Firebase SDK (v8 Compat untuk stabilitas) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  
-  <!-- SheetJS untuk Export Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
-  <!-- Stylesheet Utama -->
-  <link rel="stylesheet" href="src/style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- ============================================================
-       LOADING SCREEN
-       ============================================================ -->
+  <!-- LOADING SCREEN -->
   <div id="loading-screen" class="loading-overlay">
     <div class="loading-box">
       <div class="spinner"></div>
@@ -28,9 +23,7 @@
     </div>
   </div>
 
-  <!-- ============================================================
-       LOGIN SCREEN (GURU, SISWA, ADMIN)
-       ============================================================ -->
+  <!-- LOGIN SCREEN -->
   <div id="login-screen" class="container auth-container hidden">
     <div class="auth-box">
       <header class="brand">
@@ -42,64 +35,68 @@
         <p>SMP Negeri 10 Samarinda</p>
       </header>
 
-      <!-- Navigasi Tab Login -->
+      <div class="theme-wrap">
+        <div class="theme-toggle">
+          <button type="button" onclick="setTheme('light')" id="btn-theme-light">Terang</button>
+          <button type="button" onclick="setTheme('dark')" id="btn-theme-dark">Gelap</button>
+        </div>
+      </div>
+
       <nav class="tabs">
         <button type="button" class="tab active" onclick="switchLoginTab('guru')" id="tab-login-guru">Guru</button>
         <button type="button" class="tab" onclick="switchLoginTab('siswa')" id="tab-login-siswa">Siswa</button>
         <button type="button" class="tab" onclick="switchLoginTab('admin')" id="tab-login-admin">Admin</button>
       </nav>
 
-      <!-- FORM LOGIN GURU -->
-      <form id="form-login-guru" onsubmit="event.preventDefault(); doLoginGuru()">
+      <!-- FORM GURU -->
+      <form id="form-login-guru" onsubmit="event.preventDefault(); doLogin('guru')">
         <div class="form-group">
           <label>Email Guru</label>
-          <input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" autocomplete="username">
+          <input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" required>
         </div>
         <div class="form-group pw-toggle">
           <label>Password</label>
-          <input type="password" id="guru-password" placeholder="Password" autocomplete="current-password">
+          <input type="password" id="guru-password" placeholder="Password" required>
+          <button class="toggle-btn" type="button" onclick="togglePw('guru-password')">Lihat</button>
         </div>
         <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Guru</button>
       </form>
 
-      <!-- FORM LOGIN SISWA -->
-      <form id="form-login-siswa" class="hidden" onsubmit="event.preventDefault(); doLoginSiswa()">
+      <!-- FORM SISWA -->
+      <form id="form-login-siswa" class="hidden" onsubmit="event.preventDefault(); doLogin('siswa')">
         <div class="form-group">
-          <label>Pilih Kelas</label>
-          <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select>
-        </div>
-        <div class="form-group">
-          <label>Email atau No. WhatsApp</label>
-          <input type="text" id="siswa-email" placeholder="email atau 08123456789" autocomplete="username">
+          <label>Email / No. WhatsApp</label>
+          <input type="text" id="siswa-email" placeholder="email atau 08123456789" required>
         </div>
         <div class="form-group pw-toggle">
           <label>Password</label>
-          <input type="password" id="siswa-password" placeholder="Password" autocomplete="current-password">
+          <input type="password" id="siswa-password" placeholder="Password" required>
+          <button class="toggle-btn" type="button" onclick="togglePw('siswa-password')">Lihat</button>
         </div>
         <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Siswa</button>
         <div class="divider-text">
-          Belum punya akun? <button type="button" class="link" onclick="showRegisterPage()">Daftar di sini</button>
+          Belum punya akun? <button type="button" class="link" onclick="toggleAuthPage('register')">Daftar di sini</button>
         </div>
       </form>
 
-      <!-- FORM LOGIN ADMIN -->
-      <form id="form-login-admin" class="hidden" onsubmit="event.preventDefault(); doLoginAdmin()">
+      <!-- FORM ADMIN -->
+      <form id="form-login-admin" class="hidden" onsubmit="event.preventDefault(); doLogin('admin')">
+        <div class="alert alert-info">Area Administrator: Kelola akun guru pengampu.</div>
         <div class="form-group">
           <label>Email Admin</label>
-          <input type="email" id="admin-email" autocomplete="username">
+          <input type="email" id="admin-email" required>
         </div>
         <div class="form-group pw-toggle">
           <label>Password</label>
-          <input type="password" id="admin-password" autocomplete="current-password">
+          <input type="password" id="admin-password" required>
+          <button class="toggle-btn" type="button" onclick="togglePw('admin-password')">Lihat</button>
         </div>
         <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Admin</button>
       </form>
     </div>
   </div>
 
-  <!-- ============================================================
-       REGISTER SCREEN (PENDAFTARAN SISWA)
-       ============================================================ -->
+  <!-- REGISTER SCREEN -->
   <div id="register-screen" class="container auth-container hidden">
     <div class="auth-box">
       <header class="brand">
@@ -107,25 +104,19 @@
         <p>Gunakan Kode Kelas dari guru</p>
       </header>
       <form onsubmit="event.preventDefault(); doRegister()">
-        <div class="form-group">
-          <label>Kode Kelas</label>
-          <input type="text" id="daftar-code" style="text-transform:uppercase;letter-spacing:.15em;text-align:center;font-weight:700;" placeholder="Contoh: IXA-1234">
-        </div>
-        <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name" autocomplete="name"></div>
-        <div class="form-group"><label>Email</label><input type="email" id="daftar-email" autocomplete="email"></div>
-        <div class="form-group"><label>No. WhatsApp</label><input type="tel" id="daftar-phone" placeholder="08123456789"></div>
-        <div class="form-group"><label>Password</label><input type="password" id="daftar-password" autocomplete="new-password"></div>
+        <div class="form-group"><label>Kode Kelas</label><input type="text" id="daftar-code" placeholder="Contoh: IXA-1234" required></div>
+        <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name" required></div>
+        <div class="form-group"><label>Email / No. WA</label><input type="text" id="daftar-email" required></div>
+        <div class="form-group"><label>Password</label><input type="password" id="daftar-password" required></div>
         <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar Sekarang</button>
         <div class="divider-text">
-          Sudah punya akun? <button type="button" class="link" onclick="showLoginPage()">Login</button>
+          Sudah punya akun? <button type="button" class="link" onclick="toggleAuthPage('login')">Login</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ============================================================
-       APP CONTAINER (DASHBOARD UTAMA SETELAH BERHASIL LOGIN)
-       ============================================================ -->
+  <!-- APP DASHBOARD (SETELAH LOGIN) -->
   <div id="app-container" class="container hidden">
     <div class="app-brand-header">
       <div class="app-brand-logos">
@@ -140,39 +131,51 @@
 
     <div class="header">
       <div class="header-info">
-        <h2 id="header-title-text">Dashboard</h2>
-        <div class="user-info" id="user-info"></div>
+        <h2 id="header-title-text">Dashboard Aktif</h2>
+        <div class="user-info" id="user-info">Selamat datang, User.</div>
       </div>
       <div class="actions">
-        <button class="notif-btn hidden" id="notif-btn" onclick="openNotifPanel()">Notifikasi <span class="notif-badge hidden" id="notif-badge">0</span></button>
-        <button class="btn btn-sm" onclick="doLogout()">Logout</button>
+        <button class="btn btn-sm" onclick="setTheme('light')">Terang</button>
+        <button class="btn btn-sm" onclick="setTheme('dark')">Gelap</button>
+        <button class="notif-btn" onclick="openNotifPanel()">Notifikasi <span class="notif-badge">3</span></button>
+        <button class="btn btn-sm btn-danger" onclick="doLogout()">Logout</button>
       </div>
     </div>
 
-    <main class="content" id="main-content"></main>
+    <main class="content" id="main-content">
+      <div class="card">
+        <h3>Selamat Datang di SP-PPT</h3>
+        <p>Pilih menu untuk mulai mengelola tahapan, struktur kerja, dan penilaian teater kelas Anda.</p>
+        <br>
+        <button class="btn btn-primary" onclick="openModal('Tahapan Proyek', 'Tahapan saat ini sedang dimuat dari Firebase...')">Lihat Tahapan</button>
+      </div>
+    </main>
   </div>
 
-  <!-- ============================================================
-       MODAL GLOBAL
-       ============================================================ -->
+  <!-- MODAL GLOBAL -->
   <div id="modal" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="modal-title">Modal</h3>
+        <h3 id="modal-title">Judul Modal</h3>
         <button class="close-btn" onclick="closeModal()">&times;</button>
       </div>
       <div id="modal-body"></div>
     </div>
   </div>
 
-  <!-- ============================================================
-       SCRIPTS LAYER (Struktur Modular Baru)
-       ============================================================ -->
-  <script src="src/core/config.js"></script>
-  <script src="src/core/database.js"></script>
-  <script src="src/core/utils.js"></script>
-  <script src="src/core/auth.js"></script>
-  <script src="src/features/main.js"></script>
-  <script src="src/app.js"></script>
+  <!-- NOTIFICATION PANEL -->
+  <div class="notif-backdrop" id="notif-backdrop" onclick="closeNotifPanel()"></div>
+  <aside class="notif-panel" id="notif-panel">
+    <div class="notif-panel-header">
+      <h3>Notifikasi</h3>
+      <button class="close-btn" onclick="closeNotifPanel()">&times;</button>
+    </div>
+    <div class="notif-panel-body" id="notif-panel-body">
+      <div class="alert alert-info">Belum ada notifikasi baru.</div>
+    </div>
+  </aside>
+
+  <!-- SCRIPT UTAMA -->
+  <script src="app.js"></script>
 </body>
 </html>
