@@ -1259,3 +1259,217 @@ function injectGDriveKeuanganButton(){
   var f = mb.querySelector('.card');
   if (f && f.parentNode) f.parentNode.insertBefore(card, f);
   else mb.insertBefore(card, mb.firstChild);
+}
+
+function injectGDriveDokpubCard(){
+  if (!window.currentUser || !isSiswa()) return;
+  var r = uRole();
+  if (r !== 'koor_publikasi' && r !== 'anggota_publikasi') return;
+  var mc = document.getElementById('main-content');
+  if (!mc || mc.querySelector('.sf-gdrive-dokpub-card')) return;
+  var cid = uCid(); if (!cid) return;
+  var card = document.createElement('div');
+  card.className = 'card sf-gdrive-dokpub-card';
+  card.style.cssText = 'border-left:4px solid var(--success);margin-bottom:14px;background:linear-gradient(135deg,var(--success-soft),var(--info-soft));';
+  card.innerHTML = '<h3 style="font-size:13.5px;margin-bottom:6px;">Galeri Dokumentasi GDrive</h3>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Kelola link GDrive dokumentasi produksi.</p>' +
+    '<button class="btn btn-success btn-sm" onclick="window.__sfOpenGDriveDokpub()">Buka Galeri</button>';
+  var qa = mc.querySelector('.quick-actions-wrap'), tb = mc.querySelector('.mp-toolbar');
+  if (qa && qa.parentNode) qa.parentNode.insertBefore(card, qa);
+  else if (tb && tb.nextSibling) tb.parentNode.insertBefore(card, tb.nextSibling);
+  else if (tb) tb.parentNode.appendChild(card);
+  else mc.insertBefore(card, mc.firstChild);
+}
+
+window.__sfOpenGDriveDokpub = function(){
+  var cid = uCid();
+  if (!cid){ alert('Kelas tidak ditemukan'); return; }
+  if (typeof window.openGDriveDokpub === 'function') window.openGDriveDokpub(cid);
+  else alert('Fitur GDrive Dokpub belum siap.');
+};
+
+/* ============================================================
+   BAGIAN 9 — TOMBOL EXTRA TOOLBAR
+   ============================================================ */
+function injectToolbarExtraButtons(){
+  if (!window.currentUser || !isSiswa()) return;
+  var tb = document.querySelector('.mp-toolbar');
+  if (!tb) return;
+  var r = uRole(); var cid = uCid();
+  if (!cid) return;
+  if (r === 'bendahara' && !tb.querySelector('.btn-gdrive-keuangan')){
+    var b1 = document.createElement('button');
+    b1.className = 'btn btn-gdrive-keuangan';
+    b1.style.cssText = 'background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;';
+    b1.onclick = function(){ if (window.openGDriveKeuangan) window.openGDriveKeuangan(cid); };
+    b1.textContent = 'Arsip Nota';
+    tb.appendChild(b1);
+  }
+  if ((r === 'koor_publikasi' || r === 'anggota_publikasi') && !tb.querySelector('.btn-gdrive-dokpub')){
+    var b2 = document.createElement('button');
+    b2.className = 'btn btn-gdrive-dokpub';
+    b2.style.cssText = 'background:linear-gradient(135deg,var(--success),#059669);color:#fff;border:none;';
+    b2.onclick = function(){ if (window.openGDriveDokpub) window.openGDriveDokpub(cid); };
+    b2.textContent = 'Galeri Dokpub';
+    tb.appendChild(b2);
+  }
+  if ((r === 'pimpinan_produksi' || r === 'sekretaris') && !tb.querySelector('.btn-master-schedule')){
+    var b3 = document.createElement('button');
+    b3.className = 'btn btn-master-schedule';
+    b3.onclick = function(){ if (window.openMasterSchedule) window.openMasterSchedule(cid); };
+    b3.textContent = 'Master Jadwal';
+    tb.appendChild(b3);
+  }
+  if ((r === 'koor_publikasi' || r === 'anggota_publikasi') && !tb.querySelector('.btn-kalender-konten')){
+    var b4 = document.createElement('button');
+    b4.className = 'btn btn-kalender-konten';
+    b4.onclick = function(){ if (window.openKalenderKonten) window.openKalenderKonten(cid); };
+    b4.textContent = 'Kalender Konten';
+    tb.appendChild(b4);
+  }
+}
+
+/* ============================================================
+   BAGIAN 10 — HOOKS
+   ============================================================ */
+(function(){
+  var orig = window.renderGuruDash;
+  if (typeof orig !== 'function') return;
+  window.renderGuruDash = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(function(){
+      if (window.currentUser && window.currentUser.type === 'guru'){
+        if (window.myClasses().length === 0 && Date.now() - __lastRepairAt > 5000) window.__repairKelas();
+      }
+    }, 600);
+    return ret;
+  };
+})();
+
+(function(){
+  var orig = window.renderSiswaDash;
+  if (typeof orig !== 'function') return;
+  window.renderSiswaDash = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 300);
+    setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 1000);
+    return ret;
+  };
+})();
+
+(function(){
+  var orig = window.showApp;
+  if (typeof orig !== 'function') return;
+  window.showApp = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(function(){
+      if (!window.currentUser || window.currentUser.type !== 'guru') return;
+      var cached = _loadCache();
+      if (cached && cached.classes.length){ window.DB.classes = cached.classes; if (window.renderGuruDash) window.renderGuruDash(); }
+      window.__repairKelas(function(ok, err){
+        if (!ok && err && window.myClasses().length === 0) showStatusBar('Kelas tidak dapat dimuat.');
+      });
+    }, 800);
+    return ret;
+  };
+})();
+
+(function(){
+  var orig = window.openKasKelas;
+  if (typeof orig !== 'function') return;
+  window.openKasKelas = function(){
+    var ret = orig.apply(this, arguments);
+    setTimeout(injectGDriveKasButton, 120);
+    setTimeout(injectGDriveKasButton, 400);
+    return ret;
+  };
+})();
+
+(function(){
+  var orig = window.openKeuanganModal;
+  if (typeof orig === 'function'){
+    window.openKeuanganModal = function(){
+      var ret = orig.apply(this, arguments);
+      setTimeout(injectGDriveKeuanganButton, 120);
+      setTimeout(injectGDriveKeuanganButton, 400);
+      return ret;
+    };
+  }
+})();
+
+if (typeof MutationObserver !== 'undefined'){
+  var mo = new MutationObserver(function(){
+    injectGDriveKasButton();
+    injectGDriveKeuanganButton();
+    injectToolbarExtraButtons();
+    injectGDriveDokpubCard();
+  });
+  var startMO = function(){
+    var modal = document.getElementById('modal');
+    if (modal) mo.observe(modal, {childList:true, subtree:true, attributes:true, attributeFilter:['class']});
+    var mc = document.getElementById('main-content');
+    if (mc) mo.observe(mc, {childList:true, subtree:true});
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(startMO, 800); });
+  else setTimeout(startMO, 800);
+}
+
+/* ============================================================
+   BAGIAN 11 — RUN AWAL
+   ============================================================ */
+setTimeout(autoReadClassesForLogin, 800);
+setTimeout(autoReadClassesForLogin, 2000);
+setTimeout(populateLoginDropdown, 1500);
+setTimeout(populateLoginDropdown, 3000);
+setInterval(populateLoginDropdown, 2500);
+
+setTimeout(function(){
+  if (!window.currentUser || window.currentUser.type !== 'guru') return;
+  var cached = _loadCache();
+  if (cached && cached.classes.length){ window.DB.classes = cached.classes; if (window.renderGuruDash) window.renderGuruDash(); }
+  window.__repairKelas(function(ok, err){
+    if (!ok && err && window.myClasses().length === 0) showStatusBar('Kelas tidak dapat dimuat.');
+  });
+}, 1500);
+
+setInterval(function(){
+  if (!window.currentUser || window.currentUser.type !== 'guru') return;
+  if (window.myClasses().length > 0) return;
+  if (Date.now() - __lastRepairAt < 40000) return;
+  window.__repairKelas();
+}, 45000);
+
+setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 2000);
+setTimeout(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 4000);
+setInterval(function(){ injectToolbarExtraButtons(); injectGDriveDokpubCard(); }, 5000);
+
+/* ============================================================
+   BAGIAN 12 — CONSOLE COMMANDS
+   ============================================================ */
+window.fixKelasSekarang = function(){
+  window.__repairKelas(function(ok, err){
+    if (ok) alert('Kelas dimuat!');
+    else if (err) alert('Error: ' + err.message);
+    else alert('Tidak ada kelas.');
+  });
+};
+
+window.bridgeInfo = function(){
+  console.log('=== FIX v10.1 ===');
+  console.log('User:', (window.currentUser||{}).name, '/', (window.currentUser||{}).role);
+  console.log('uCid:', window.uCid());
+  console.log('__viewClassId:', window.__viewClassId);
+  console.log('__currentViewClassId:', window.__currentViewClassId);
+  console.log('sf-back-wrap ada?', !!document.querySelector('.sf-back-wrap'));
+  ['openBeriTugas','openDeadline','openTugasSaya','openDeadlineList','openPenilaianGuruDashboard','openRekapNilai','openNilaiSaya','openKasKelas','markAllRead'].forEach(function(fn){
+    console.log('  ' + fn + ':', typeof window[fn]);
+  });
+};
+
+window.clearKelasCache = function(){
+  try { localStorage.removeItem(_cacheKey()); alert('Cache dibersihkan. Refresh.'); } catch(e){}
+};
+
+console.log('[fix] v10.1 FULL FINAL loaded — dengan tombol Kembali yang selalu terlihat');
+
+})();
