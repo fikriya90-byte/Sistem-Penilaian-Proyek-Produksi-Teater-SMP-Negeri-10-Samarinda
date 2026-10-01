@@ -1,52 +1,173 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5">
   <title>SP-PPT - Sistem Penilaian Proyek Produksi Teater</title>
-  <!-- Firebase SDK (v8 Compat untuk kompatibilitas stabil) -->
+  
+  <!-- Firebase SDK (v8 Compat untuk stabilitas) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <!-- SheetJS untuk Export Excel (Versi Terkunci) -->
+  
+  <!-- SheetJS untuk Export Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
   <!-- Stylesheet Utama -->
   <link rel="stylesheet" href="src/style.css">
 </head>
 <body>
-  <div id="app" class="app-container">
-    <!-- Header dengan Logo -->
-    <header class="app-header" style="display: flex; align-items: center; gap: 16px;">
-      <div class="app-brand-logos" style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
-        <img src="https://iili.io/nHvZkQt.png" onerror="this.style.display='none'" alt="Logo Utama" style="height: 52px; width: auto; object-fit: contain;">
-        <img src="https://iili.io/nHsHgfe.png" onerror="this.style.display='none'" alt="Logo Mapel" style="height: 52px; width: auto; object-fit: contain;">
-      </div>
-      <div class="header-info" style="flex: 1; min-width: 0;">
-        <h1 style="font-size: 1.1rem; font-weight: 700; margin: 0;">SP-PPT SMPN 10 Samarinda</h1>
-        <p class="subtitle" style="margin: 2px 0 0 0;">Sistem Penilaian Proyek Produksi Teater</p>
-      </div>
-    </header>
 
-    <!-- Main Content Area -->
-    <main id="main-content" class="main-content">
-      <div class="card">
-        <h2>Memuat Sistem...</h2>
-        <p>Menyiapkan modul autentikasi dan basis data terpusat.</p>
-      </div>
-    </main>
-  </div>
-
-  <!-- Modal Global -->
-  <div id="global-modal" class="modal-backdrop" style="display:none;">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 id="modal-title">Judul Modal</h3>
-        <button onclick="closeModal()" class="btn-close">&times;</button>
-      </div>
-      <div id="modal-body" class="modal-body"></div>
+  <!-- ============================================================
+       LOADING SCREEN
+       ============================================================ -->
+  <div id="loading-screen" class="loading-overlay">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <h3>Memuat Aplikasi</h3>
+      <p>Mohon tunggu sebentar...</p>
     </div>
   </div>
 
-  <!-- Scripts Layer (Urutan Modular) -->
+  <!-- ============================================================
+       LOGIN SCREEN (GURU, SISWA, ADMIN)
+       ============================================================ -->
+  <div id="login-screen" class="container auth-container hidden">
+    <div class="auth-box">
+      <header class="brand">
+        <div class="brand-logos">
+          <img src="https://iili.io/nHvZkQt.png" onerror="this.style.display='none'" alt="Logo Utama">
+          <img src="https://iili.io/nHsHgfe.png" onerror="this.style.display='none'" alt="Logo Mapel">
+        </div>
+        <h1>Sistem Penilaian Proyek Produksi Teater</h1>
+        <p>SMP Negeri 10 Samarinda</p>
+      </header>
+
+      <!-- Navigasi Tab Login -->
+      <nav class="tabs">
+        <button type="button" class="tab active" onclick="switchLoginTab('guru')" id="tab-login-guru">Guru</button>
+        <button type="button" class="tab" onclick="switchLoginTab('siswa')" id="tab-login-siswa">Siswa</button>
+        <button type="button" class="tab" onclick="switchLoginTab('admin')" id="tab-login-admin">Admin</button>
+      </nav>
+
+      <!-- FORM LOGIN GURU -->
+      <form id="form-login-guru" onsubmit="event.preventDefault(); doLoginGuru()">
+        <div class="form-group">
+          <label>Email Guru</label>
+          <input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" autocomplete="username">
+        </div>
+        <div class="form-group pw-toggle">
+          <label>Password</label>
+          <input type="password" id="guru-password" placeholder="Password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Guru</button>
+      </form>
+
+      <!-- FORM LOGIN SISWA -->
+      <form id="form-login-siswa" class="hidden" onsubmit="event.preventDefault(); doLoginSiswa()">
+        <div class="form-group">
+          <label>Pilih Kelas</label>
+          <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Email atau No. WhatsApp</label>
+          <input type="text" id="siswa-email" placeholder="email atau 08123456789" autocomplete="username">
+        </div>
+        <div class="form-group pw-toggle">
+          <label>Password</label>
+          <input type="password" id="siswa-password" placeholder="Password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Siswa</button>
+        <div class="divider-text">
+          Belum punya akun? <button type="button" class="link" onclick="showRegisterPage()">Daftar di sini</button>
+        </div>
+      </form>
+
+      <!-- FORM LOGIN ADMIN -->
+      <form id="form-login-admin" class="hidden" onsubmit="event.preventDefault(); doLoginAdmin()">
+        <div class="form-group">
+          <label>Email Admin</label>
+          <input type="email" id="admin-email" autocomplete="username">
+        </div>
+        <div class="form-group pw-toggle">
+          <label>Password</label>
+          <input type="password" id="admin-password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Masuk sebagai Admin</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       REGISTER SCREEN (PENDAFTARAN SISWA)
+       ============================================================ -->
+  <div id="register-screen" class="container auth-container hidden">
+    <div class="auth-box">
+      <header class="brand">
+        <h1>Pendaftaran Siswa</h1>
+        <p>Gunakan Kode Kelas dari guru</p>
+      </header>
+      <form onsubmit="event.preventDefault(); doRegister()">
+        <div class="form-group">
+          <label>Kode Kelas</label>
+          <input type="text" id="daftar-code" style="text-transform:uppercase;letter-spacing:.15em;text-align:center;font-weight:700;" placeholder="Contoh: IXA-1234">
+        </div>
+        <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name" autocomplete="name"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="daftar-email" autocomplete="email"></div>
+        <div class="form-group"><label>No. WhatsApp</label><input type="tel" id="daftar-phone" placeholder="08123456789"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="daftar-password" autocomplete="new-password"></div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar Sekarang</button>
+        <div class="divider-text">
+          Sudah punya akun? <button type="button" class="link" onclick="showLoginPage()">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       APP CONTAINER (DASHBOARD UTAMA SETELAH BERHASIL LOGIN)
+       ============================================================ -->
+  <div id="app-container" class="container hidden">
+    <div class="app-brand-header">
+      <div class="app-brand-logos">
+        <img src="https://iili.io/nHvZkQt.png" onerror="this.style.display='none'" alt="Logo Utama">
+        <img src="https://iili.io/nHsHgfe.png" onerror="this.style.display='none'" alt="Logo Mapel">
+      </div>
+      <div class="app-brand-text">
+        <h1>Sistem Penilaian Proyek Produksi Teater</h1>
+        <p>SMP Negeri 10 Samarinda</p>
+      </div>
+    </div>
+
+    <div class="header">
+      <div class="header-info">
+        <h2 id="header-title-text">Dashboard</h2>
+        <div class="user-info" id="user-info"></div>
+      </div>
+      <div class="actions">
+        <button class="notif-btn hidden" id="notif-btn" onclick="openNotifPanel()">Notifikasi <span class="notif-badge hidden" id="notif-badge">0</span></button>
+        <button class="btn btn-sm" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+
+    <main class="content" id="main-content"></main>
+  </div>
+
+  <!-- ============================================================
+       MODAL GLOBAL
+       ============================================================ -->
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Modal</h3>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCRIPTS LAYER (Struktur Modular Baru)
+       ============================================================ -->
   <script src="src/core/config.js"></script>
   <script src="src/core/database.js"></script>
   <script src="src/core/utils.js"></script>
