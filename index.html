@@ -6,7 +6,6 @@
 <meta name="description" content="SP-PPT — Sistem Penilaian Proyek Produksi Teater SMP Negeri 10 Samarinda">
 <meta name="theme-color" content="#2563eb">
 <title>SP-PPT — Sistem Penilaian Produksi Teater</title>
-
 <link rel="icon" type="image/png" href="https://iili.io/nHsHgfe.png">
 <link rel="apple-touch-icon" href="https://iili.io/nHsHgfe.png">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -14,7 +13,7 @@
 </head>
 <body>
 
-<!-- ═══════ SPLASH ═══════ -->
+<!-- SPLASH -->
 <div id="splash" class="splash">
   <div class="splash-logos">
     <img src="https://iili.io/nHsHgfe.png" alt="Teater" onerror="this.style.display='none'">
@@ -26,7 +25,7 @@
   <div class="spinner"></div>
 </div>
 
-<!-- ═══════ LOGIN ═══════ -->
+<!-- LOGIN -->
 <div id="login-screen" class="auth-screen hidden">
   <div class="auth-card">
     <header class="brand">
@@ -45,8 +44,8 @@
     </div>
 
     <nav class="tabs" role="tablist">
-      <button class="tab active" data-tab="login">Masuk</button>
-      <button class="tab" data-tab="register">Daftar</button>
+      <button class="tab active" data-tab="login" type="button">Masuk</button>
+      <button class="tab" data-tab="register" type="button">Daftar</button>
     </nav>
 
     <form id="form-login" class="tab-panel active" autocomplete="on">
@@ -70,7 +69,7 @@
     <form id="form-register" class="tab-panel" autocomplete="off">
       <div class="field">
         <label for="reg-code">Kode Kelas</label>
-        <input id="reg-code" type="text" placeholder="IXA-1234" required style="text-transform:uppercase;letter-spacing:.1em;text-align:center;font-weight:700">
+        <input id="reg-code" type="text" placeholder="IXA-1234" required class="input-code">
       </div>
       <div class="field"><label for="reg-name">Nama Lengkap</label><input id="reg-name" type="text" required autocomplete="name"></div>
       <div class="field"><label for="reg-email">Email</label><input id="reg-email" type="email" required autocomplete="email"></div>
@@ -95,7 +94,7 @@
   </div>
 </div>
 
-<!-- ═══════ APP ═══════ -->
+<!-- APP -->
 <div id="app" class="app hidden">
   <header class="app-header">
     <div class="app-header-left">
@@ -108,4 +107,31 @@
     <div class="app-header-actions">
       <button class="icon-btn" id="btn-notif" title="Notifikasi">🔔<span id="notif-badge" class="badge-dot hidden">0</span></button>
       <button class="icon-btn" id="btn-theme" title="Tema">🌓</button>
-      <button class="icon-btn" id="btn-logout"
+      <button class="icon-btn" id="btn-panduan" title="Panduan">❓</button>
+      <button class="icon-btn" id="btn-logout" title="Keluar">🚪</button>
+    </div>
+  </header>
+
+  <main id="main-content" class="app-main"></main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<!-- MODAL -->
+<div id="modal-root" class="modal-root hidden">
+  <div class="modal-backdrop" data-modal-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h3 id="modal-title">—</h3>
+      <button class="icon-btn" data-modal-close type="button">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-root" class="toast-root"></div>
+
+<script type="module" src="/src/app.js"></script>
+</body>
+</html>
