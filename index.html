@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SP-PPT — SMPN 10 Samarinda</title>
+  <meta name="theme-color" content="#0F172A" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="assets/icons/icon-192.png" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- App styles -->
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <!-- Firebase SDK (global) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS for XLSX export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-surface font-sans text-base text-on-surface">
+
+  <!-- App root -->
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="https://iili.io/nBiviCX.png" alt="Logo" class="w-10 h-10 object-cover rounded" />
+          <div>
+            <div class="font-semibold text-lg">SP-PPT — SMP Negeri 10 Samarinda</div>
+            <div class="text-xs text-gray-500">Sistem Penilaian & Manajemen Produksi Teater — Kelas IX</div>
+          </div>
+        </div>
+        <div id="header-actions" class="flex items-center gap-3"></div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="flex-1 max-w-6xl mx-auto px-4 py-6 w-full" id="main"></main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t">
+      <div class="max-w-6xl mx-auto px-4 py-4 text-sm text-gray-600">
+        © <span id="footer-year"></span> SP-PPT — SMP Negeri 10 Samarinda • Versi <span id="app-version"></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-root" class="fixed right-4 bottom-6 z-50 space-y-2"></div>
+
+  <!-- Modules -->
+  <script type="module" src="assets/js/app.js"></script>
+  <script type="module" src="assets/js/sw-register.js"></script>
+</body>
+</html>
